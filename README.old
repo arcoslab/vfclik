@@ -1,0 +1,89 @@
+
+This code is ALPHA quality at the momment, so a warning is appropriate:
+
+
+"Abandon all hope ye who enter here" (*)
+
+
+
+* Sign sitting above the gates of Hell. Meant to scare you, if you aren't already scared by the endless screams of torment by those on the other side of the gate. From Dante's "The Inferno".
+
+
+A longer definition:
+
+In the translation by John Ciardi, used in the Modern Library Edition of Inferno the first nine lines of Canto III read as follows:
+
+    I AM THE WAY INTO THE CITY OF WOE.
+    I AM THE WAY TO A FORSAKEN PEOPLE.
+    I AM THE WAY INTO ETERNAL SORROW.
+ 
+    SACRED JUSTICE MOVED MY ARCHITECT.
+    I WAS RAISED HERE BY DIVINE OMNIPOTENCE,
+    PRIMORDIAL LOVE AND ULTIMATE INTELLECT.
+
+   ONLY THOSE ELEMENTS TIME CANNOT WEAR
+   WERE MADE BEFORE ME, AND BEYOND TIME I STAND.
+   ABANDON ALL HOPE, YE WHO ENTER HERE.
+
+
+
+This is inscribed directly on the gate to Hell and does not serve as a warning because all oncoming souls are already damned. It is simply informative and rhetorical to a point. Vergil informs Dante that it does not apply to him.
+
+-  Check for dependecies in file dependecies
+-  Check that there is a yarp server running
+	yarp where
+-  Clean old used ports:
+	yarp clean
+-  Start the Kuka LWR interface in yivo computer if you are running on the
+real robot:
+    As your user, run:
+    start_rsi-yarp.sh
+-  Start the VectorField system:
+	./system_start.sh
+ 	or for simulation:
+	./sim_start.sh
+-  This will start some consoles.
+-  Three important consoles are (yarp inputs): ObjectsIn, ToolIn, NullSpaceIn
+
+Description of the inputs:
+
+	ObjectsIn:
+It accepts to redefine the goal or add and remove obstacles
+Syntax:
+action, type of object, parameter list for goals or obstacle number, parameter list for obstacles
+
+action: set or remove
+
+type of objects: goal, goalAndNormal, ObstacleP, ObstacleH
+goal: Attraction point with rotation attraction and a
+slowDownDistance
+goalAndNormal: Simple goal + an approach direction + funnel parameters
+ObstacleP: Spherical repeller with radius and order of Decay
+ObstacleH: Hemispherical repeller need a normal axis, safe distance and order
+of decay
+paramter list: Depends on the type of object
+
+Parameters:
+goal: homogeneous matrix + distanceToGoalToStartDeacceleration
+#Works in the real robot on the wall
+set goal (0 1 0 0 -1 0 0 0.3 0 0 1 1.1 0 0 0 1 0.1)
+
+goalAndNormal: homogeneous matrix (16 floats) + axis (3 floats) + distanceToGoalToStartDeacceleration (1 float) + funnelAngle(rads) (1 float) + funnelLength (1 float)
+set goalAndNormal (1 0 0 0.4 0 -1 0 -0.4 0 0 -1 0.4 0 0 0 1 0 -1 0 0.1 0.15
+0.15)
+ObstacleP: homogeneous matrix (16 floats) + radius + order of Decay
+set ObstacleP 0 (1 0 0 0.0 0 1 0 -0.4 0 0 1 0.4 0 0 0 1  0.05 20)
+ObstacleH: homogeneous matrix + normalAxis(pointing in the direction of the
+repeller force) + safeDistance + order of Decay
+set ObstacleH 0 (1 0 0 0 0 1 0 -0.4 0 0 1 0.3 0 0 0 1 0 0 1 0.001 5)
+
+	ToolIn:
+It accepts a frame with respect to the end-effector Robot frame. This
+represents a tool that the robot has attached to the end-effector. To frame
+is a homogeneous (16 values) transformation matrix.
+1 0 0 0 0 1 0 0 0 0 1 0.2 0 0 0 1
+
+	NullSpaceIn:
+It allows to control the freedom of the kinematic chain. It accepts a float
+number which is interpreted as the speed of the nullspace.
+

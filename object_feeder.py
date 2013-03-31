@@ -1,0 +1,297 @@
+#!/usr/bin/python
+import sys
+sys.path.append("../vflib")
+import yarp
+from numpy import array
+from vflib import length
+from arcospyu.config_parser import ConfigFileParser
+
+import signal
+def signal_handler(sig, frame):
+    print "Terminating ", __file__
+    global stop
+    stop=True
+
+stop=False
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
+
+def change_ps_name(name):
+    """Change process name as used by ps(1) and killall(1)."""
+    try:
+        import ctypes
+        libc = ctypes.CDLL('libc.so.6')
+        libc.prctl(15, name, 0, 0, 0)
+    except:
+        pass
+
+config_parser=ConfigFileParser(sys.argv)
+options, args, config = config_parser.get_all()
+
+yarp.Network.init()
+
+base_name = config.robotarm_portbasename + "/ofeeder"
+paramPort = yarp.BufferedPortBottle()
+paramPort.open(base_name + "/param")
+objectPort = yarp.BufferedPortBottle()
+objectPort.open(base_name + "/object")
+objectPort.setStrict(True)
+object_f_port = yarp.BufferedPortBottle()  # port forwarding /object
+object_f_port.open(base_name + "/objectf")
+objectOutPort = yarp.BufferedPortBottle()
+objectOutPort.open(base_name + "/objectOut")
+
+objects = {}
+#object 0 is always the goal, the rest are obstacles
+
+while not stop:
+    objectbottle = objectPort.read(False)
+    if not objectbottle:
+        yarp.Time_delay(0.005)
+        continue
+
+    objectfbottle = object_f_port.prepare()
+    objectfbottle.clear()
+    for i in range(objectbottle.size()):
+        objectfbottle.add(objectbottle.get(i))
+    object_f_port.writeStrict()
+    if (objectbottle and (objectbottle.size() >= 2)):
+        print "PARAMETER: ", objectbottle.toString()
+        # We receive new parameter values!
+        objectAction = objectbottle.get(0)
+        if objectAction.toString() == "set":
+                # object data:
+                # 0: set
+                # 1: "goal", "goalAndNormal", "ObstacleP", "ObstacleH"
+                # 2: Parameter list or object number for an obstacle
+                # 3: parameter list for an obstacle
+            if objectbottle.size() == 3:
+                if objectbottle.get(1).toString() == "goal":
+                    # set normal attractor
+                    # 0-15: goal position
+                    parambottle = objectbottle.get(2).asList()
+                    params = [parambottle.get(i).asDouble()
+                              for i in range(parambottle.size())]
+                    if len(params) == 16:
+                        params.append(0.03)
+                    if len(params) == 17:
+                        objects[0] = params
+                    else:
+                        print "Wrong number of values, expected 16"
+                if objectbottle.get(1).toString() == "goalAndNormal":
+                    # set normal attractor, funnel attractor and obstacle
+                    # attractor
+                    parambottle = objectbottle.get(2).asList()
+                    # parameter list
+                    # 0-15: goal position
+                    # 16-18: direction Axis
+                    # 19-20: angle, length
+                    # 21: slow down distance
+                    params = [parambottle.get(i).asDouble()
+                              for i in range(parambottle.size())]
+                    if len(params) == 21:
+                        params.append(0.03)
+                    if len(params) == 22:
+                        objects[0] = params
+                    else:
+                        print "Wrong number of values, expected 21"
+            elif objectbottle.size() == 4:
+                if objectbottle.get(1).toString() == "ObstacleP":
+                    #set decay repeller
+                    parambottle = objectbottle.get(3).asList()
+                    #parameter list
+                    #0-15: repeller position, rotation ignored for now
+                    #16, 17: radius, order of decay
+                    if parambottle.size() == 18:
+                        params = [parambottle.get(i).asDouble()
+                                  for i in range(parambottle.size())]
+                        objects[objectbottle.get(2).asInt() + 1] = \
+                            ['ObstacleP'] + params
+                    else:
+                        print "Wrong number of values, expected 18"
+                if objectbottle.get(1).toString() == "ObstacleH":
+                    #set hemisphere repeller
+                    parambottle = objectbottle.get(3).asList()
+                    #parameter list
+                    #0-15: repeller position, rotation ignored for now
+                    #16-18: normal Axis, point in the repelling direction
+                    #19, 20: safe distance, order of decay
+                    if parambottle.size() == 21:
+                        params = [parambottle.get(i).asDouble()
+                                  for i in range(parambottle.size())]
+                        objects[objectbottle.get(2).asInt() + 1] = \
+                            ['ObstacleH'] + params
+                    else:
+                        print "Wrong number of values, expected 21"
+            else:
+                print "Wrong number of values, expected 3 or 4"
+        elif objectAction.toString() == "remove":
+            #object data:
+            #0: "remove"
+            #1: object number
+            objectNum = objectbottle.get(1).asInt()
+            #remove object with number
+            if objectNum + 1 in objects:
+                del objects[objectNum + 1]
+                parambottle = paramPort.prepare()
+                parambottle.clear()
+                parambottle.addString("remove")
+                parambottle.addInt(5 + objectNum)
+                paramPort.writeStrict()
+                objectOutbottle = objectOutPort.prepare()
+                objectOutbottle.clear()
+                objectOutbottle.addString("remove")
+                objectOutbottle.addInt(objectNum + 1)
+                objectOutPort.writeStrict()
+
+            else:
+                print "Object doesn't exist, doing nothing"
+                continue
+        else:
+            print "Action not recognized"
+            
+        if 0 in objects:
+            print "There is a goal, adding objects to the vector field"
+            for objectNum in objects:
+                print "Sending object: ", objectNum
+                paramlist = objects[objectNum]
+                if objectNum == 0:
+                    objectOutbottle = objectOutPort.prepare()
+                    objectOutbottle.clear()
+                    objectOutbottle.addString("add")
+                    objectOutbottle.addInt(objectNum)
+                    objectOutList = objectOutbottle.addList()
+                    for i in range(16):
+                        objectOutList.addDouble(paramlist[i])
+                    objectOutPort.writeStrict()
+                    # send goal
+                    if len(paramlist) == 17:  # normal goal
+                        print "sending normal goal"
+                        parambottle = paramPort.prepare()
+                        parambottle.clear()
+                        parambottle.addString("add")
+                        parambottle.addInt(1)  # Object number
+                        parambottle.addDouble(1)  # Direction force
+                        parambottle.addInt(1)  # vectorField type
+                        parambottleList = parambottle.addList()
+                        for i in range(17):
+                            # attractor position + slowdown distance
+                            parambottleList.addDouble(paramlist[i])
+                        paramPort.writeStrict()
+                        for i in range(2):
+                            parambottle = paramPort.prepare()
+                            parambottle.clear()
+                            parambottle.addString("remove")
+                            parambottle.addInt(i + 2)
+                            paramPort.writeStrict()
+                    elif len(paramlist) == 22:  # goal with approach vector
+                        print "sending goal with approach"
+                        # adding normal attractor
+                        parambottle = paramPort.prepare()
+                        parambottle.clear()
+                        parambottle.addString("add")
+                        parambottle.addInt(1)
+                        parambottle.addDouble(1)
+                        parambottle.addInt(1)
+                        parambottleList = parambottle.addList()
+                        for i in range(16):
+                            parambottleList.addDouble(paramlist[i])
+                        parambottleList.addDouble(paramlist[21])
+                        paramPort.writeStrict()
+                        # adding funnel attractor
+                        parambottle = paramPort.prepare()
+                        parambottle.clear()
+                        parambottle.addString("add")
+                        parambottle.addInt(2)
+                        parambottle.addDouble(30)
+                        parambottle.addInt(5)
+                        parambottleList = parambottle.addList()
+                        for i in range(3):
+                            # position
+                            parambottleList.addDouble(paramlist[i * 4 + 3])
+                        for i in range(3):
+                            # axis
+                            parambottleList.addDouble(paramlist[16 + i])
+                        parambottleList.addDouble(paramlist[19])  # cut angle
+                        parambottleList.addDouble(10)  # angle decay order
+                        parambottleList.addDouble(paramlist[20])  # cut dist
+                        parambottleList.addDouble(2)  # distance decay order
+                        paramPort.writeStrict()
+                        # adding near goal repeller
+                        goalToVObsD = 0.05  # 5cm
+                        parambottle = paramPort.prepare()
+                        parambottle.clear()
+                        parambottle.addString("add")
+                        parambottle.addInt(3)
+                        parambottle.addDouble(-10)  # negative: repeller
+                        parambottle.addInt(2)  # decay repeller
+                        parambottleList = parambottle.addList()
+                        goalposition = array([paramlist[3],
+                                              paramlist[7],
+                                              paramlist[11]])
+                        axis = array(paramlist[16:19])
+                        axis = axis / length(axis)
+                        vobstaclepos = goalposition + axis * goalToVObsD
+                        for i in range(3):
+                            # position (a bit far away from the goal in the
+                            # approach direction)
+                            parambottleList.addDouble(vobstaclepos[i])
+                        # obstacle radius
+                        parambottleList.addDouble(paramlist[20] + goalToVObsD)
+                        parambottleList.addDouble(0.001)  # safe distance
+                        parambottleList.addDouble(5)  # decay order
+                        paramPort.writeStrict()
+                    else:
+                        # should never occur
+                        print "wrong number of parameters"
+                else:
+                    objectOutbottle = objectOutPort.prepare()
+                    objectOutbottle.clear()
+                    objectOutbottle.addString("add")
+                    objectOutbottle.addInt(objectNum)
+                    objectOutList = objectOutbottle.addList()
+                    for i in range(16):
+                        objectOutList.addDouble(paramlist[i + 1])
+                    objectOutPort.writeStrict()
+                    # send repellers
+                    if paramlist[0] == "ObstacleP":  # Point decay repeller
+                        print "Sending point obstacle"
+                        parambottle = paramPort.prepare()
+                        parambottle.clear()
+                        parambottle.addString("add")
+                        parambottle.addInt(4 + objectNum)  # obstacle number
+                        parambottle.addDouble(-10)  # negative repeller
+                        parambottle.addInt(2)  # decay repeller
+                        parambottleList = parambottle.addList()
+                        for i in range(3):
+                            parambottleList.addDouble(paramlist[i * 4 + 3 + 1])  # position
+                        parambottleList.addDouble(paramlist[16 + 1])  # obstacle radius
+                        parambottleList.addDouble(0.001)  # safe distance
+                        parambottleList.addDouble(paramlist[17 + 1])  # decay order
+                        paramPort.writeStrict()
+                    if paramlist[0] == "ObstacleH":  # hemisphere repeller
+                        print "Sending table repeller"
+                        parambottle = paramPort.prepare()
+                        parambottle.clear()
+                        parambottle.addString("add")
+                        parambottle.addInt(4 + objectNum)  # obstacle number
+                        parambottle.addDouble(-50)  # negative repeller
+                        parambottle.addInt(4)  # hemisphere repeller
+                        parambottleList = parambottle.addList()
+                        for i in range(3):
+                            parambottleList.addDouble(paramlist[i * 4 + 3 + 1])  # position
+                        for i in range(3):
+                            parambottleList.addDouble(paramlist[i + 16 + 1])  # normal
+                        parambottleList.addDouble(paramlist[19 + 1])  # safe distance
+                        parambottleList.addDouble(paramlist[20 + 1])  # decay order
+                        paramPort.writeStrict()
+        else:
+            print "Not setting repellers, waiting for a goal. Please set a goal, to apply all the repellers"
+
+
+paramPort.close()
+objectPort.close()
+object_f_port.close()
+objectOutPort.close()
+yarp.Network.fini()

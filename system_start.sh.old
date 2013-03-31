@@ -1,0 +1,457 @@
+#!/bin/bash
+
+robot="lwr"
+robot_instance="right"
+sim="no"
+simcmdline=""
+debug="no"
+rem_hostname="localhost"
+obj_vis="no"
+quiet="no"
+connect="no"
+
+while getopts ":t:r:i:sdhnvqc" opt; do
+    case $opt in
+        r)
+            echo "Robot name: $OPTARG"
+            robot=$OPTARG
+            ;;
+        i)
+            echo "Robot instance: $OPTARG"
+            robot_instance=$OPTARG
+            ;;
+        s)
+            echo "Simulation selected"
+            sim="yes"
+            simcmdline="-s"
+            ;;
+        d)
+            echo "Debug selected"
+            debug="yes"
+            ;;
+        t)
+            echo "Remote execution selected"
+            rem_hostname=$OPTARG
+            echo "Hostname: $rem_hostname"
+            ;;
+        n)
+            echo "Arm stays where it is NOW"
+            stay_now="yes"
+            ;;
+        v)
+            echo "Activate object visualization"
+            obj_vis="yes"
+            ;;
+
+        q)
+            echo "Quiet, deactivating display windows"
+            quiet="yes"
+            ;;
+        c)
+            echo "Connecting at the end of the script"
+            connect="yes"
+            ;;
+        h)
+            echo "Help"
+            echo "Syntax:"
+            echo "    system_start options"
+            echo "Options:"
+            echo "   -r robotname : [lwr | powercube | icub] "
+            echo "   -i instance_of_the_robot: [left | right]"
+            echo "   -s use simulator"
+            echo "   -d debug: open everything in x consoles"
+            echo "   -t machine: run the control loop on a remote machine"
+            echo "   -n command the robot to stay where he is NOW"
+            echo "   -v objects visualization"
+            echo "   -q quiet, don't open display windows"
+            echo "   -c connect at the end automatically"
+            echo "   -h help"
+            exit 0
+            ;;
+    esac
+done
+
+function cmdline {
+    #$1: hostname
+    #$2: user
+    #$3: command to execute example: $DIR/wait.sh $DIR/VFv3.py -c $configFileName
+
+    if [ $1 = "localhost" ]
+    then
+        echo "$3"
+        #echo "ssh -X -t $2@localhost source /home/$2/.bashrc; cd $DIR; $3"
+    else
+        echo "ssh -t $2@$1 source /home/$2/.bashrc; cd $DIR; $3"
+    fi
+}
+
+
+viewYarpPortbase=/$robot/$robot_instance/roboview
+simYarpPortbase=/$robot/$robot_instance/joint_sim
+
+pushd `dirname $0`
+DIR=`pwd`
+
+PYTHONPATH_ORIGINAL=$PYTHONPATH
+export PYTHONPATH=$PYTHONPATH:$DIR
+
+echo "Starting system in this directory: "
+echo $DIR
+configFileName=config-$robot-$robot_instance.py
+base_yarp_portname=/$robot/$robot_instance
+if [ ! -e $configFileName ]; then
+    echo $configFileName not found.
+    exit -1  
+fi
+echo Using robot config file: $configFileName
+
+if ps aux |grep `id -u -n` |grep urxvtd |grep -v grep >/dev/null
+then
+  echo not starting urxvtd, already running.
+else
+  echo starting urxvtd...
+  nohup urxvtd >/dev/null 2>/dev/null&
+  sleep 1 
+fi
+
+TS=60x10
+
+HD=450
+VD=150
+
+#yarp clean
+if [ $debug = "yes" ] ; then 
+    urxvtc -geometry $TS+$[$HD*1]+$[$VD*0] -title "VectorField" -e `cmdline $rem_hostname $USER "$DIR/wait.sh $DIR/VFv3.py -c $configFileName"`
+    urxvtc -geometry $TS+$[$HD*0]+$[$VD*2] -title "ObjectFeeder" -e `cmdline $rem_hostname $USER "$DIR/wait.sh $DIR/ObjectFeeder.py -c $configFileName"`
+    urxvtc -geometry $TS+$[$HD*1]+$[$VD*1] -title "MonitorDistance" -e `cmdline $rem_hostname $USER "$DIR/wait.sh $DIR/monitorDistance.py -c $configFileName"`
+    urxvtc -geometry $TS+$[$HD*0]+$[$VD*0] -title "roboview" -e `cmdline "localhost" $USER "$DIR/wait.sh $DIR/roboview $configFileName /$robot/$robot_instance"`
+    urxvtc -geometry $TS+$[$HD*0]+$[$VD*1] -title "bridge" -e `cmdline $rem_hostname $USER "$DIR/wait.sh $DIR/bridge.py -c $configFileName $simcmdline"`
+    if [ $robot != "icub" ]; then
+        urxvtc -geometry $TS+$[$HD*1]+$[$VD*2] -title "nullSpace" -e `cmdline $rem_hostname $USER "$DIR/wait.sh $DIR/nullspace.py -c $configFileName"`
+    fi
+    urxvtc -geometry $TS+$[$HD*0]+$[$VD*4] -title "joint_pos_controller" -e `cmdline $rem_hostname $USER "$DIR/wait.sh $DIR/jointPController.py -c $configFileName"`
+    urxvtc -geometry $TS+$[$HD*0]+$[$VD*3] -title "debug_jointlimits" -e `cmdline $rem_hostname $USER "$DIR/wait.sh $DIR/debug_jointlimits.py -c $configFileName"`
+    urxvtc -geometry $TS+$[$HD*1]+$[$VD*3] -title "Bar Display" -e `cmdline "localhost" $USER "$DIR/wait.sh $DIR/barDisplay.py -c $configFileName"`
+    if [ $obj_vis == "yes" ]; then    
+        urxvtc -geometry $TS+$[$HD*1]+$[$VD*4] -title "VF visualization" -e `cmdline "localhost" $USER "$DIR/wait.sh $DIR/vf_visualizer.py -c $configFileName"`
+    fi
+    #sleep 10
+    yarp wait $base_yarp_portname/ofeeder/object
+    urxvtc -geometry $TS+$[$HD*2]+$[$VD*0] -title "ObjectsIn" -e `cmdline "localhost" $USER "$DIR/wait.sh rlwrap yarp write ... $base_yarp_portname/ofeeder/object"`
+    urxvtc -geometry $TS+$[$HD*2]+$[$VD*1] -title "ToolIn" -e `cmdline "localhost" $USER "$DIR/wait.sh rlwrap yarp write ... $base_yarp_portname/vectorField/tool"`
+    yarp wait $base_yarp_portname/vectorField/tool
+    urxvtc -geometry $TS+$[$HD*2]+$[$VD*2] -title "NullSpaceIn" -e `cmdline "localhost" $USER "$DIR/wait.sh rlwrap yarp write ... $base_yarp_portname/nullspace/control"`
+    #yarp wait $base_yarp_portname/nullspace/control
+    if [ $sim = "yes" ]; then
+	urxvtc -geometry $TS+$[$HD*3]+$[$VD*0] -title "Joint simulator" -e `cmdline "localhost" $USER "$DIR/wait.sh $DIR/joint_sim.py -c $configFileName"`
+    fi
+	
+else
+    if [ $quiet == "no" ] ; then
+        #`cmdline "localhost" $USER "glc-capture $DIR/roboview $configFileName /$robot/$robot_instance"` &
+        `cmdline "localhost" $USER "$DIR/roboview $configFileName /$robot/$robot_instance"` &
+        sleep 0.5
+        `cmdline "localhost" $USER "$DIR/barDisplay.py -c $configFileName"` &
+        sleep 0.5
+    fi
+    if [ $obj_vis == "yes" ]; then    
+        `cmdline "localhost" $USER "$DIR/vf_visualizer.py -c $configFileName"` &
+    fi
+    sleep 0.5
+    if [ $rem_hostname = "localhost" ]
+    then
+        nohup `cmdline $rem_hostname $USER "$DIR/VFv3.py -c $configFileName "` &
+        sleep 0.5
+        nohup  `cmdline $rem_hostname $USER "$DIR/ObjectFeeder.py -c $configFileName"` &
+        sleep 0.5
+        nohup  `cmdline $rem_hostname $USER "$DIR/monitorDistance.py -c $configFileName"` &
+        sleep 0.5
+        nohup  `cmdline $rem_hostname $USER "$DIR/bridge.py -c $configFileName $simcmdline"` &
+        sleep 0.5
+        if [ $robot != "icub" ]; then
+            nohup  `cmdline $rem_hostname $USER "$DIR/nullspace.py -c $configFileName"` &
+        fi
+        sleep 0.5
+        nohup  `cmdline $rem_hostname $USER "$DIR/jointPController.py -c $configFileName"` &
+        sleep 0.5
+        nohup  `cmdline $rem_hostname $USER "$DIR/debug_jointlimits.py -c $configFileName"` &
+        sleep 0.5
+	if [ $sim = "yes" ]; then
+	    nohup `cmdline $rem_hostname $USER "$DIR/joint_sim.py -c $configFileName"` &
+	fi
+    else
+        screen -d -m  `cmdline $rem_hostname $USER "$DIR/VFv3.py -c $configFileName "` &
+        sleep 0.5
+        screen -d -m   `cmdline $rem_hostname $USER "$DIR/ObjectFeeder.py -c $configFileName"` &
+        sleep 0.5
+        screen -d -m   `cmdline $rem_hostname $USER "$DIR/monitorDistance.py -c $configFileName"` &
+        sleep 0.5
+        screen -d -m   `cmdline $rem_hostname $USER "$DIR/bridge.py -c $configFileName $simcmdline"` &
+        sleep 0.5
+        if [ $robot != "icub" ]; then
+            screen -d -m   `cmdline $rem_hostname $USER "$DIR/nullspace.py -c $configFileName"` &
+        fi
+        sleep 0.5
+        screen -d -m   `cmdline $rem_hostname $USER "$DIR/jointPController.py -c $configFileName"` &
+        sleep 0.5
+        screen -d -m   `cmdline $rem_hostname $USER "$DIR/debug_jointlimits.py -c $configFileName"` &
+        sleep 0.5
+	if [ $sim = "yes" ]; then
+	    screen -d -m `cmdline $rem_hostname $USER "$DIR/joint_sim.py -c $configFileName"` &
+	fi
+    fi
+
+    if [ $quiet == "no" ]; then
+        yarp wait $base_yarp_portname/ofeeder/object
+        urxvtc -geometry $TS+$[$HD*2]+$[$VD*0] -title "ObjectsIn" -e `cmdline "localhost" $USER "$DIR/wait.sh rlwrap yarp write ... $base_yarp_portname/ofeeder/object"`
+        yarp wait $base_yarp_portname/vectorField/tool
+        urxvtc -geometry $TS+$[$HD*2]+$[$VD*1] -title "ToolIn" -e `cmdline "localhost" $USER "$DIR/wait.sh rlwrap yarp write ... $base_yarp_portname/vectorField/tool"`
+        if [ $robot != "icub" ]; then
+            yarp wait $base_yarp_portname/nullspace/control
+        fi
+        urxvtc -geometry $TS+$[$HD*2]+$[$VD*2] -title "NullSpaceIn" -e `cmdline "localhost" $USER "$DIR/wait.sh rlwrap yarp write ... $base_yarp_portname/nullspace/control"`
+    fi
+fi
+
+sleep 0.5
+
+#roboview initial positions and multiplexer startup
+yarp write ... $base_yarp_portname/bridge/weights <<EOF
+1 1 0 0
+EOF
+#roboview initial positions and multiplexer startup
+yarp write ... $base_yarp_portname/bridge/weights <<EOF
+1 1 0 0
+EOF
+
+
+
+if [ $sim = "yes" ]; then
+    if [ $robot = "lwr" ]; then
+        sleep 3
+        if [ $robot_instance = "right" ]; then
+            yarp write ... /$robot/$robot_instance/joint_sim/qin <<EOF
+0 -1.2 0.7 1.4 0.35 -1.4 0
+EOF
+        fi
+        if [ $robot_instance = "left" ]; then
+            yarp write ... /$robot/$robot_instance/joint_sim/qin <<EOF
+0.78 1.6 -0.4 -1.3 1 0.5 0.7
+EOF
+        fi
+        sleep 3
+    fi
+    if [ $robot = "powercube" ]; then
+        yarp write ... /$robot/$robot_instance/joint_sim/qin <<EOF
+2.2 1.0 1.5 2 1.6 2.5
+EOF
+    fi
+    if [ $robot = "icub" ]; then
+        if [ $robot_instance = "right" ]; then
+            yarp wait /$robot/$robot_instance/joint_sim/qin
+            echo "Sending icub initial positions"
+            yarp write ... /$robot/$robot_instance/joint_sim/qin <<EOF
+0.0 0 0 -0.2 1.4 0.5 1.0 0 -0.9 0.2
+EOF
+        fi
+        if [ $robot_instance = "left" ]; then
+            yarp wait /$robot/$robot_instance/roboview/qin
+            echo "Sending icub initial positions"
+            yarp write ... /$robot/$robot_instance/joint_sim/qin <<EOF
+0.0 0 0 -0.2 1.4 0.5 1.0 0 -0.9 0.2
+EOF
+        fi
+        echo "Todo: Send some nice initial joint values to the iCub here"
+    fi
+fi 
+
+echo "Connecting signals .... "
+#object Feeder, distance monitor and vector field visualizer
+../yarp_tools/yarp_tools.py connect $base_yarp_portname/ofeeder/param $base_yarp_portname/vectorField/param
+../yarp_tools/yarp_tools.py connect $base_yarp_portname/ofeeder/objectOut $base_yarp_portname/dmonitor/objectsIn
+../yarp_tools/yarp_tools.py connect $base_yarp_portname/vectorField/pose $base_yarp_portname/dmonitor/currentPosIn
+../yarp_tools/yarp_tools.py connect $base_yarp_portname/vectorField/track_error $base_yarp_portname/dmonitor/track_error_in
+
+if [ $obj_vis == "yes" ]; then    
+    ../yarp_tools/yarp_tools.py connect $base_yarp_portname/ofeeder/objectf $base_yarp_portname/vf_vis/param
+    ../yarp_tools/yarp_tools.py connect $base_yarp_portname/vectorField/pose $base_yarp_portname/vf_vis/pos
+    ../yarp_tools/yarp_tools.py connect $base_yarp_portname/vectorField/vector_out $base_yarp_portname/vf_vis/vector
+fi
+
+
+#Loop
+if [ $sim = "yes" ]; then
+    ../yarp_tools/yarp_tools.py connect $simYarpPortbase/qout $base_yarp_portname/bridge/qin;
+    if [ $robot = "lwr" ]; then
+        ../yarp_tools/yarp_tools.py connect $simYarpPortbase/qout $base_yarp_portname/bridge/qcmded;
+    fi
+else
+    if [ $robot = "lwr" ]; then
+        ../yarp_tools/yarp_tools.py connect $base_yarp_portname/robot/pos $base_yarp_portname/bridge/qin   
+        ../yarp_tools/yarp_tools.py connect $base_yarp_portname/robot/cmded $base_yarp_portname/bridge/qcmded
+    fi
+    if [ $robot = "powercube" ]; then
+        echo "Doing nothing here"
+    fi
+    if [ $robot = "icub" ]; then
+        echo "Doing nothing here"
+    fi
+fi 
+../yarp_tools/yarp_tools.py connect $base_yarp_portname/bridge/encoders $base_yarp_portname/vectorField/qIn
+
+#nullspace
+if [ $robot != "icub" ]; then
+    ../yarp_tools/yarp_tools.py connect $base_yarp_portname/bridge/encoders $base_yarp_portname/nullspace/qin
+    ../yarp_tools/yarp_tools.py connect $base_yarp_portname/nullspace/qdotout $base_yarp_portname/bridge/nullcmd
+fi
+
+#joint pos controller
+../yarp_tools/yarp_tools.py connect $base_yarp_portname/jpctrl/out  $base_yarp_portname/bridge/jointcmd
+../yarp_tools/yarp_tools.py connect $base_yarp_portname/bridge/encoders $base_yarp_portname/jpctrl/in
+
+#visualization
+if [ $quiet == "no" ]; then
+    ../yarp_tools/yarp_tools.py connect $base_yarp_portname/bridge/encoders $viewYarpPortbase/qin
+    ../yarp_tools/yarp_tools.py connect $base_yarp_portname/debug/qdist $base_yarp_portname/bar/in
+fi
+    
+#joint limits debug
+../yarp_tools/yarp_tools.py connect $base_yarp_portname/bridge/encoders  $base_yarp_portname/debug/qin
+
+# set initial goal
+#yarp write ... /ofeeder/object <<EOF
+#set goal (0.419164 0.901194 -0.11023 0.0 0.881956 -0.432992 -0.186203 0.3 -0.215533 -0.019169 -0.976308 1.1 0 0 0 1 0.03) 
+#EOF
+
+#set initial goal for walled arm
+#yarp write ... /ofeeder/object <<EOF
+#set goal (0 1 0 0 -1 0 0 0.3 0 0 1 1.1 0 0 0 1 0.1) 
+#EOF
+
+#for the arm on the moving platform, to operate sideways
+#set goal (-1 0 0 0.13 0 0 -1 -0.36 0 -1 0 0.86 0 0 0 1 0.1) 
+
+if [ $robot = "lwr" ]; then
+#tool frame for the hand in the looking grabing position
+#    yarp write ... $base_yarp_portname/vectorField/tool <<EOF
+#0.866025 -0.0 0.5 0.09 0.0 1.0 0.0 0.0 -0.5 0.0 0.866025 0.26 0.0 0.0 0.0 1.0
+#EOF
+#base of hand
+    yarp write ... $base_yarp_portname/vectorField/tool <<EOF
+1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+EOF
+    if [ $robot_instance = "right" ]; then
+#set initial goal for the arm mounted on the platform, handshake position
+        yarp write ... $base_yarp_portname/ofeeder/object <<EOF
+set goal (-1 0 0 0.8 0 0 1 -0.15 0 1 0 1.2 0 0 0 1 0.05)
+EOF
+    fi
+    if [ $robot_instance = "left" ]; then
+#set initial goal for the arm mounted on the platform, handshake position
+        yarp write ... $base_yarp_portname/ofeeder/object <<EOF
+set goal (-1 0 0 0.6 0 0 -1 0.15 0 -1 0 1 0 0 0 1 0.05)
+EOF
+    fi
+fi
+if [ $robot = "powercube" ]; then
+    if [ $robot_instance = "right" ]; then
+        yarp write ... $base_yarp_portname/ofeeder/object <<EOF
+set goal (1 0 0 0.6 0 0 1 0 0 -1 0 1.1 0.0 0.0 0.0 1.0 0.1)
+EOF
+    fi
+    if [ $robot_instance = "left" ]; then
+        yarp write ... $base_yarp_portname/ofeeder/object <<EOF
+set goal (1 0 0 0.6 0 0 -1 0 0 1 0 1.1 0.0 0.0 0.0 1.0 0.1)
+EOF
+    fi
+fi
+if [ $robot = "icub" ]; then
+    if [ $robot_instance = "right" ]; then
+#        yarp write ... $base_yarp_portname/ofeeder/object <<EOF
+#set goal (-1 0 0 0.25 0 0 1 0 0 1 0 0.2 0.0 0.0 0.0 1.0 0.1)
+#EOF
+#        yarp write ... $base_yarp_portname/ofeeder/object <<EOF
+#set goal (0.275401 0.473806 0.836458 0.25 -0.110697 0.879948 -0.461994 -0.3 -0.954935 0.03464 0.294787 0.1 0.0 0.0 0.0 1.0 0.1)
+#EOF
+#        yarp write ... $base_yarp_portname/ofeeder/object <<EOF
+#set goal (0.293943 0.457491 0.839226 0.228385 -0.107939 0.888285 -0.446429 -0.27806 -0.949709 0.04064 0.310486 0.089218 0 0 0 1)
+#EOF
+#        yarp write ... $base_yarp_portname/ofeeder/object <<EOF
+#set goal (0.293943 0.457491 0.839226 0.228385 -0.107939 0.888285 -0.446429 -0.27806 -0.949709 0.04064 0.310486 0.089218 0 0 0 1 0.1)
+#EOF
+        yarp write ... $base_yarp_portname/ofeeder/object <<EOF
+set goal (0.929468 0.243007 0.277554 0.204181 -0.053191 0.832798 -0.551015 -0.343211 -0.365047 0.497388 0.786986 0.242661 0 0 0 1 0.1)
+EOF
+ 
+
+
+    fi
+    if [ $robot_instance = "left" ]; then
+#        yarp write ... $base_yarp_portname/ofeeder/object <<EOF
+#set goal (-1 0 0 0.25 0 0 -1 0 0 -1 0 0.2 0.0 0.0 0.0 1.0 0.1)
+#EOF
+#        yarp write ... $base_yarp_portname/ofeeder/object <<EOF
+#set goal (0.710611 -0.436812 -0.551568 0.20 0.430408 0.890027 -0.150337 0.3 0.556579 -0.130569 0.82047 0.1 0 0 0 1 0.1)
+#EOF
+        yarp write ... $base_yarp_portname/ofeeder/object <<EOF
+set goal (-0.274388 0.304729 0.912059 0.247385 0.335136 0.919301 -0.206325 0.221996 -0.901329 0.249051 -0.354371 0.07101 0 0 0 1 0.1)
+EOF
+    fi
+fi
+
+if [ "${stay_now}" == "yes" ]; then
+    NOW=`../yarp_tools/yarp_tools.py --read-bottle /$robot/$robot_instance/vectorField/pose`
+    echo "staying here: $NOW"
+    yarp write ... $base_yarp_portname/ofeeder/object <<EOF
+set goal ($NOW 0.05)
+EOF
+fi
+
+
+if [ $robot = "icub" ]; then
+    yarp wait $base_yarp_portname/bridge/torso_cjoints:i
+    echo "Connecting the port to command torso weights"
+    yarp connect $base_yarp_portname/bridge/control_weights:o $base_yarp_portname/vectorField/weight
+    yarp write ... $base_yarp_portname/bridge/torso_cjoints:i<<EOF
+0 0 0
+EOF
+fi
+
+
+
+
+sleep 0.5
+if [ $connect == "yes" ]; then
+    QUEST="y"
+else
+    read -p "Press y to START: " QUEST
+fi
+
+if [[ $QUEST == "y" ]] ; then    
+#Special port for LWR
+    if [ $sim = "yes" ]; then
+        echo "Connecting vectorField/qdotOut -> /bridge/vectorfieldcmd and bridge/qcmd -> simulator/qvin"
+        ../yarp_tools/yarp_tools.py connect $base_yarp_portname/vectorField/qdotOut $base_yarp_portname/bridge/vectorfieldcmd
+        ../yarp_tools/yarp_tools.py connect $base_yarp_portname/bridge/qcmd $simYarpPortbase/qvin;
+        ../yarp_tools/yarp_tools.py connect $base_yarp_portname/bridge/qcmd $viewYarpPortbase/qvin;
+    else
+        if [ $robot = "lwr" ]; then
+            echo "Connecting vectorField/qdotOut -> /bridge/vectorfieldcmd and bridge/qcmd -> /robot/cmd"
+            ../yarp_tools/yarp_tools.py connect $base_yarp_portname/vectorField/qdotOut $base_yarp_portname/bridge/vectorfieldcmd
+            ../yarp_tools/yarp_tools.py connect $base_yarp_portname/bridge/qcmd $base_yarp_portname/robot/cmd
+        fi
+        if [ $robot = "powercube" ]; then
+            echo "Connecting vectorField/qdotOut -> /bridge/vectorfieldcmd"
+            ../yarp_tools/yarp_tools.py connect $base_yarp_portname/vectorField/qdotOut $base_yarp_portname/bridge/vectorfieldcmd
+        fi
+        if [ $robot = "icub" ]; then
+            echo "Connecting vectorField/qdotOut -> /bridge/vectorfieldcmd"
+            ../yarp_tools/yarp_tools.py connect $base_yarp_portname/vectorField/qdotOut $base_yarp_portname/bridge/vectorfieldcmd
+        fi
+    fi 
+else    
+    echo "Not started, you have to do it yourself. Depending on the robot, you have to connect $base_yarp_portname/bridge/qcmd to your robot"
+fi
+popd
+
+export PYTHONPATH=$PYTHONPATH_ORIGINAL
