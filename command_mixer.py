@@ -1,12 +1,22 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+# Copyright (c) 2009 Technische Universitaet Muenchen, Informatik Lehrstuhl IX.
+# Author: Ingo Kresse <kresse at in.tum.de> Federico Ruiz Ugalde <memeruiz at gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import time, sys
 import yarp
-#sys.path.append("../python/config_parser")
-#from config_parser import ConfigFileParser
-#config_parser=ConfigFileParser(sys.argv)
-#config_parser.parser.add_option("-s", "--simulation", action="store_true", dest="sim", default=False,help="Simulation")
-#options, args, config = config_parser.get_all()
 
 #TODO; recover after seeing NaNs
 

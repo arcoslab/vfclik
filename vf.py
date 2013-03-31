@@ -1,6 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # Copyright (c) 2009-2011 Technische Universitaet Muenchen, Intelligent Autonomous Systems (Prof. Beetz)
-# Authors: Federico Ruiz-Ugalde <ruizf@in.tum.de>, Alexis Maldonado <maldonado@tum.de>
+# Authors: Federico Ruiz-Ugalde <memeruiz at gmail.com>, Alexis Maldonado <maldonado@tum.de>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

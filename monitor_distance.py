@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # Copyright (c) 2009-2011 Technische Universitaet Muenchen, Intelligent Autonomous Systems (Prof. Beetz)
-# Authors: Federico Ruiz-Ugalde <ruizf at in.tum.de>
+# Authors: Federico Ruiz-Ugalde <memeruiz at gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+
 import sys
 sys.path.append("../vflib")
 import yarp

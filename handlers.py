@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # Copyright (c) 2009 Technische Universitaet Muenchen, Informatik Lehrstuhl IX.
 # Authors: Alexis Maldonado Herrera <maldonad at cs.tum.edu> Federico Ruiz-Ugalde <memeruiz@gmail.com>
 #

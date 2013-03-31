@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # Copyright (c) 2009 Technische Universitaet Muenchen, Informatik Lehrstuhl IX.
 # Author: Ingo Kresse <kresse at in.tum.de>
 #
