@@ -23,10 +23,6 @@ points in orientation
 '''
 
 import sys
-sys.path.append("../python/numeric")
-sys.path.append("../python/config_parser")
-sys.path.append("../vflib")
-sys.path.append("../lafik")
 sys.path.append("../yarp_tools")
 
 from math import sqrt
@@ -35,19 +31,15 @@ from numpy import dot
 from math import sin
 from math import acos
 import yarp
-from vectorFieldClass import VectorField
-from vectorFieldClass import ScalarField
-from vectorFields import goalObstacleVField2
-from vectorFields import trapezoidWeight
+from vfl.vectorFieldClass import VectorField
+from vfl.vectorFieldClass import ScalarField
+from vfl.vectorFields import goalObstacleVField2
+from vfl.vectorFields import trapezoidWeight
 from numpy import array
 from numpy import zeros
-from lafik import Lafik
-import vfLibrary as vf
-from yarp_comm_helpers import sendListPort
-from yarp_comm_helpers import readListPort
-from yarp_comm_helpers import listToKdlFrame
-from yarp_comm_helpers import kdlFrameToList
-from yarp_comm_helpers import change_ps_name
+from arcospyu.lafik import Lafik
+import vfl.vfl as vf
+from arcospyu.yarp_tools.yarp_comm_helpers import sendListPort, readListPort, listToKdlFrame, kdlFrameToList
 from arcospyu.config_parser import ConfigFileParser
 from arcospyu.dprint import dprint
 
@@ -63,8 +55,6 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
-
-change_ps_name('vf.py')
 
 config_parser=ConfigFileParser(sys.argv)
 options, args, config = config_parser.get_all()

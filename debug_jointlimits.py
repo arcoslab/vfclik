@@ -16,8 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import sys
-sys.path.append("../lafik")
-from lafik import Lafik
+from arcospyu.lafik import Lafik
 from math import pi
 import yarp
 import sys

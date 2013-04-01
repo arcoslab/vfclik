@@ -16,10 +16,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import sys
-sys.path.append("../vflib")
 import yarp
 from numpy import array
-from vflib import length
+from vfl.vfl import length
 from PyKDL import Frame
 from PyKDL import diff
 from math import sqrt

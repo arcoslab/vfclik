@@ -17,28 +17,14 @@
 
 def main():
     import sys, os
+    from time import sleep
     from arcospyu.dprint import iprint, dprint, eprint, dcprint
-    #from arcospyu import dprint as dp
-    #sys.path.append("../../arcospyu/arcospyu/dprint")
-    #import dprint
-    #d=dprint.Dprint()
-    #dprint=d.dprint
-    dprint("testt")
-    #exit()
     from arcospyu.mypopen import MyPopen
     from arcospyu.pmanager import PManager
 
     #signal handling
     import signal
     def signal_handler(sig, frame):
-        #dprint("Sending signal ", sig, " to subprocesses")
-        #[process.send_signal(signal.SIGTERM) for process in processes]
-        #dprint("Waiting processes to terminate")
-        #for process in processes:
-        #    print "Waiting for process: ", process.args[0], " to terminate"
-        #    process.wait_and_kill(3)
-        #    print "Process: ", process.args[0], " terminated"
-        #print "Processes terminated, exiting"
         pmanager.stop()
         exit(1)
     signal.signal(signal.SIGINT, signal_handler)
@@ -67,16 +53,18 @@ def main():
                     ["./nullspace.py", "-c", config_filename],
                     ["./joint_p_controller.py", "-c", config_filename],
                     ["./debug_jointlimits.py", "-c", config_filename],
-                    ["../roboview/roboview", config_filename, yarp_base_portname],
-                    ["../yarp_tools/bar_vis.py", yarp_base_portname]]
+                    ["roboview", config_filename, yarp_base_portname],
+                    ["bar_vis", yarp_base_portname]
+]
     if options.sim:
-        processes_args+=[["../models/robot/joint_sim.py", "-c", os.getcwd()+"/"+config_filename]]
+        processes_args+=[["joint_sim", "-c", os.getcwd()+"/"+config_filename]]
 
-    print processes_args
+    #print processes_args
 
-    dprint("testetstetest")
+    dprint("Starting processes")
     pmanager=PManager(processes_args)
     pmanager.start()
+    sleep(1)
     #processes=[]
     #for process_args in processes_args:
     #    processes.append(MyPopen(process_args))

@@ -26,10 +26,9 @@ import yarp
 
 import sys
 from arcospyu.config_parser import ConfigFileParser
-sys.path.append("../lafik")
 config_parser=ConfigFileParser(sys.argv)
 options, args, config = config_parser.get_all()
-import lafik
+from arcospyu import lafik
 
 import signal
 def signal_handler(sig, frame):
