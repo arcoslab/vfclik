@@ -41,7 +41,7 @@ from arcospyu.lafik import Lafik
 import vfl.vfl as vf
 from arcospyu.yarp_tools.yarp_comm_helpers import sendListPort, readListPort, listToKdlFrame, kdlFrameToList
 from arcospyu.config_parser import ConfigFileParser
-from arcospyu.dprint import dprint
+from arcospyu.dprint import dprint, eprint, wprint
 
 from math import sqrt
 import PyKDL
@@ -76,26 +76,48 @@ pose_in_port = yarp.BufferedPortBottle()
 vector_port = yarp.BufferedPortBottle()
 goal_port = yarp.BufferedPortBottle()
 
-qdotOutPort.open(config.robotarm_portbasename + "/vectorField/qdotOut")
-qInPort.open(config.robotarm_portbasename + "/vectorField/qIn")
-toolPort.open(config.robotarm_portbasename + "/vectorField/tool")
-paramPort.open(config.robotarm_portbasename + "/vectorField/param")
-posePort.open(config.robotarm_portbasename + "/vectorField/pose")
-pose_no_tool_Port.open(config.robotarm_portbasename + "/vectorField/pose_no_tool")
-weightPort.open(config.robotarm_portbasename + "/vectorField/weight")
-tracking_error_port.open(config.robotarm_portbasename + "/vectorField/track_error")
-pose_in_port.open(config.robotarm_portbasename + "/vectorField/pose_in")
-vector_port.open(config.robotarm_portbasename + "/vectorField/vector_out")
-goal_port.open(config.robotarm_portbasename + "/vectorField/goal_out")
-maxvel_port.open(config.robotarm_portbasename + "/vectorField/max_vel")
-
-
+robotbn=config.robotarm_portbasename
+portbasename=robotbn+"/vectorField"
+qdotoutpn=portbasename + "/qdotOut"
+qinpn=portbasename + "/qIn"
+toolpn=portbasename + "/tool"
+parampn=portbasename + "/param"
+posepn=portbasename + "/pose"
+pose_no_toolpn=portbasename + "/pose_no_tool"
+weightpn=portbasename + "/weight"
+tracking_errorpn=portbasename + "/track_error"
+pose_inpn=portbasename + "/pose_in"
+vectorpn=portbasename + "/vector_out"
+goalpn=portbasename + "/goal_out"
+maxvelpn=portbasename + "/max_vel"
 
 paramPort.setStrict(True)
 toolPort.setStrict(True)
 weightPort.setStrict(True)
 maxvel_port.setStrict(True)
 
+qdotOutPort.open(qdotoutpn)
+qInPort.open(qinpn)
+toolPort.open(toolpn)
+paramPort.open(parampn)
+posePort.open(posepn)
+pose_no_tool_Port.open(pose_no_toolpn)
+weightPort.open(weightpn)
+tracking_error_port.open(tracking_errorpn)
+pose_in_port.open(pose_inpn)
+vector_port.open(vectorpn)
+goal_port.open(goalpn)
+maxvel_port.open(maxvelpn)
+
+
+
+yconnect=yarp.Network.connect
+
+cstyle=yarp.ContactStyle()
+cstyle.persistent=True
+yconnect(posepn, robotbn+"/dmonitor/currentPosIn", cstyle)
+yconnect(tracking_errorpn, robotbn+"/dmonitor/track_error_in", cstyle)
+yconnect(qdotoutpn, robotbn+"/bridge/vectorfieldcmd", cstyle)
 
 config_max_vel = 0.41
 #speedScale=0.12  #iCub
@@ -137,7 +159,7 @@ def get_weight_matrix(wbottle,n_vars):
             weights[i][i] = wbottle.get(i + 1).asDouble()
         return(weights)
     else:
-        print "WARNING: Wrong size of %s weights. Ignored" %wbottle.get(0).asString().c_str()
+        dprint("WARNING: Wrong size of %s weights. Ignored" %wbottle.get(0).asString().c_str())
         return(None)
 
 
@@ -145,7 +167,7 @@ start_attractor = False
 first_arm_data = True
 
 reporting_port_counter = 0
-
+counter_test=0
 
 while not stop:
 
@@ -157,26 +179,28 @@ while not stop:
             global speedScale
             speedScale = new_max_vel
         else:
-            print("Value of speedScale not between 0.0 and config_max_vel. Ignoring")
+            dprint("Value of speedScale not between 0.0 and config_max_vel. Ignoring")
 
     #Param Receiving
     parambottle = paramPort.read(False)
     if (start_attractor or (parambottle and (parambottle.size() >= 1))):
-        print "setting vectorfield"
+        dprint("setting vectorfield")
+        #eprint("COUNTER: ", counter_test)
+        counter_test+=1
 #      print "PARAMETER: ",parambottle.toString()
         #We receive new parameter values!
         if not start_attractor:
             paramAction = parambottle.get(0)
         else:
-            paramAction = yarp.Value()
-            paramAction.fromString("start_attractor")
+            paramAction = yarp.Value_makeString("start_attractor")
+            #paramAction.fromString()
         if paramAction.toString() == "start_attractor":
-            print "Adding start attractor"
+            dprint("Adding start attractor")
             force = 1.0
             tVF = 1
             params = first_arm_frame + [0.05]
             vectorFields[1] = [force, tVF, params]
-            print "New vector field", vectorFields[1]
+            dprint("New vector field", vectorFields[1])
             start_attractor = False
         if paramAction.toString() == "add":
             if (parambottle.size() == 5):
@@ -201,11 +225,11 @@ while not stop:
                         params = map(yarp.Value.asDouble,map(paramsbottle.get, range(paramsbottle.size())))
                         #print "Params: ", params
                         vectorFields[parambottle.get(1).asInt()] = [force, tVF, params]
-                        print "Normal, vector field number", parambottle.get(1).asInt(), "vectorfield params", vectorFields[parambottle.get(1).asInt()]
+                        dprint("Normal, vector field number", parambottle.get(1).asInt(), "vectorfield params", vectorFields[parambottle.get(1).asInt()])
                 else:
-                    print "Unknown vector field type, ignoring"
+                    dprint("Unknown vector field type, ignoring")
             else:
-                print "Wrong number of values, expected 5, ignoring"
+                dprint("Wrong number of values, expected 5, ignoring")
         if paramAction.toString() == "remove":
             if parambottle.size() == 2:
                 if parambottle.get(1).asInt() in vectorFields:
@@ -214,7 +238,7 @@ while not stop:
                     pass
 #            print "Vectorfield doesn't exist, doing nothing"
             else:
-                print "Wrong number of values, expected 2"
+                dprint("Wrong number of values, expected 2")
         vftemp = vfDB[0]()
         vftemp.setParams([])
         totalVFtemp = VectorField(vftemp.getVector)

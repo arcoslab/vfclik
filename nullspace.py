@@ -136,9 +136,19 @@ def main():
   control_port = yarp.BufferedPortBottle() # expects four-float-bottles
 
   basename=config.robotarm_portbasename+"/nullspace"
-  qin_port.open(basename+'/qin')
-  qdotout_port.open(basename+'/qdotout')
-  control_port.open(basename+'/control')
+  qinpn=basename+'/qin'
+  qin_port.open(qinpn)
+  qdotoutpn=basename+'/qdotout'
+  qdotout_port.open(qdotoutpn)
+  controlpn=basename+'/control'
+  control_port.open(controlpn)
+
+
+  robotbn=config.robotarm_portbasename
+  yconnect=yarp.Network.connect
+  cstyle=yarp.ContactStyle()
+  cstyle.persistent=True
+  yconnect(qdotoutpn, robotbn+"/bridge/nullcmd", cstyle)
 
 #  limits = rob.get_limits()
 

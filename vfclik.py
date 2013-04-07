@@ -21,6 +21,7 @@ def main():
     from arcospyu.dprint import iprint, dprint, eprint, dcprint
     from arcospyu.mypopen import MyPopen
     from arcospyu.pmanager import PManager
+    from arcospyu.yarp_tools.yarp_comm_helpers import yarp_write
 
     #signal handling
     import signal
@@ -54,7 +55,7 @@ def main():
                     ["./joint_p_controller.py", "-c", config_filename],
                     ["./debug_jointlimits.py", "-c", config_filename],
                     ["roboview", config_filename, yarp_base_portname],
-                    ["bar_vis", yarp_base_portname]
+                    ["bar_vis", "-b", yarp_base_portname]
 ]
     if options.sim:
         processes_args+=[["joint_sim", "-c", os.getcwd()+"/"+config_filename]]
@@ -70,15 +71,9 @@ def main():
     #    processes.append(MyPopen(process_args))
     #    processes[-1].args=process_args
 
+    dprint("Looping")
     pmanager.monitor()
     exit()
-
-    from time import sleep
-
-    while True:
-        print "looping"
-        sleep(1)
-        pass
 
 if __name__=="__main__":
     main()

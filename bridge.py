@@ -70,6 +70,9 @@ maxvel_portname = yarpbridgeportbasename+"/max_vel"
 xtra1cmd_portname = yarpbridgeportbasename + "/xtra1cmd"
 xtra2cmd_portname = yarpbridgeportbasename + "/xtra2cmd"
 
+
+
+
 rate = config.rate
 direct_control=False
 try: config.force_control
@@ -533,11 +536,22 @@ def main():
     maxvel_port.open(maxvel_portname)
     maxvel_port.setStrict(True)
     
-
+    robotbn=config.robotarm_portbasename
+    yconnect=yarp.Network.connect
+    cstyle=yarp.ContactStyle()
+    cstyle.persistent=True
+    yconnect(encoders_portname, robotbn+"/vectorField/qIn", cstyle)
+    yconnect(encoders_portname, robotbn+"/nullspace/qin", cstyle)
+    yconnect(encoders_portname, robotbn+"/jpctrl/in", cstyle)
+    yconnect(encoders_portname, robotbn+"/roboview/qin", cstyle)
+    yconnect(encoders_portname, robotbn+"/debug/qin", cstyle)
+    print "TESTTT", config.qcmd_portname
+    yconnect(robotbn+config.qcmd_portname, robotbn+"/joint_sim/qvin", cstyle)
+    yconnect(robotbn+config.qcmd_portname, robotbn+"/roboview/qvin", cstyle)
 
     bridge.open()
 
-    mixer = command_mixer.CommandMixer([vectorfieldcmd_port, nullcmd_port, jointcmd_port, mechanismcmd_port, xtra1cmd_port, xtra2cmd_port], weight_port, config.nJoints, 2.0, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    mixer = command_mixer.CommandMixer([vectorfieldcmd_port, nullcmd_port, jointcmd_port, mechanismcmd_port, xtra1cmd_port, xtra2cmd_port], weight_port, config.nJoints, 2.0, [1.0, 1.0, 0.0, 0.0, 0.0, 0.0])
 
     global direct_control
 

@@ -37,9 +37,18 @@ options, args, config = config_parser.get_all()
 yarp.Network.init()
 baseportname = config.robotarm_portbasename + "/debug"
 qinPort = yarp.BufferedPortBottle()
-qinPort.open(baseportname + "/qin")
+qinpn=baseportname + "/qin"
+qinPort.open(qinpn)
 qdistOutPort = yarp.BufferedPortBottle()
-qdistOutPort.open(baseportname + "/qdist")
+qdistoutpn=baseportname + "/qdist"
+qdistOutPort.open(qdistoutpn)
+
+
+robotbn=config.robotarm_portbasename
+yconnect=yarp.Network.connect
+cstyle=yarp.ContactStyle()
+cstyle.persistent=True
+yconnect(qdistoutpn, robotbn+"/bar/in", cstyle)
 
 
 robot=Lafik(config)

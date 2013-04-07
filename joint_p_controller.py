@@ -49,15 +49,25 @@ delta=0.087 #distance to have reached
 yarp.Network.init()
 basename="/"+config.arm_type+"/"+config.arm_instance+"/jpctrl"
 inPort=yarp.BufferedPortBottle()
-inPort.open(basename+"/in")
+inportpn=basename+"/in"
+inPort.open(inportpn)
 refPort=yarp.BufferedPortBottle()
-refPort.open(basename+"/ref")
+refpn=basename+"/ref"
+refPort.open(refpn)
 outPort=yarp.BufferedPortBottle()
-outPort.open(basename+"/out")
+outpn=basename+"/out"
+outPort.open(outpn)
 
 atGoalPort=yarp.BufferedPortBottle()
-atGoalPort.open(basename+"/at_goal")
+atgoalpn=basename+"/at_goal"
+atGoalPort.open(atgoalpn)
 
+
+robotbn=config.robotarm_portbasename
+yconnect=yarp.Network.connect
+cstyle=yarp.ContactStyle()
+cstyle.persistent=True
+yconnect(outpn, robotbn+"/bridge/jointcmd", cstyle)
 
 #yarp.Network.connect("/bridge/encoders",basename+"/in")
 #yarp.Network.connect(basename+"/out","/bridge/jointcmd")

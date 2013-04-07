@@ -52,18 +52,31 @@ options, args, config = config_parser.get_all()
 
 yarp.Network.init()
 
-base_name = config.robotarm_portbasename + "/dmonitor"
+robotbn=config.robotarm_portbasename
+base_name = robotbn + "/dmonitor"
 currentPosIn = yarp.BufferedPortBottle()
-currentPosIn.open(base_name + "/currentPosIn")
+currentpospn=base_name + "/currentPosIn"
+currentPosIn.open(currentpospn)
 objectsInPort = yarp.BufferedPortBottle()
-objectsInPort.open(base_name + "/objectsIn")
+objectsinpn=base_name + "/objectsIn"
+objectsInPort.open(objectsinpn)
 objectsInPort.setStrict()
 distOutPort = yarp.BufferedPortBottle()
-distOutPort.open(base_name + "/distOut")
+distoutpn=base_name + "/distOut"
+distOutPort.open(distoutpn)
 track_error_in_port = yarp.BufferedPortBottle()
-track_error_in_port.open(base_name + "/track_error_in")
+track_error_inpn=base_name + "/track_error_in"
+track_error_in_port.open(track_error_inpn)
 tracking_state_port = yarp.BufferedPortBottle()
-tracking_state_port.open(base_name + "/tracking_state")
+tracking_statepn=base_name + "/tracking_state"
+tracking_state_port.open(tracking_statepn)
+
+# yconnect=yarp.Network.connect
+# cstyle=yarp.ContactStyle()
+# cstyle.persistent=True
+# yconnect(, robotbn+"/vectorField/param", cstyle)
+# yconnect(objectoutpn, robotbn+"/dmonitor/objectsIn", cstyle)
+
 
 objects = {}
 
