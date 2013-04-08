@@ -47,13 +47,13 @@ def main():
     yarp_base_portname="/"+options.robot+"/"+options.instance
 
     #starting yarp modules
-    processes_args=[["./vf.py", "-c", config_filename],
-                    ["./object_feeder.py", "-c", config_filename],
-                    ["./monitor_distance.py", "-c", config_filename],
-                    ["./bridge.py", "-c", config_filename, "-s"],
-                    ["./nullspace.py", "-c", config_filename],
-                    ["./joint_p_controller.py", "-c", config_filename],
-                    ["./debug_jointlimits.py", "-c", config_filename],
+    processes_args=[["vf", "-c", config_filename],
+                    ["object_feeder", "-c", config_filename],
+                    ["monitor_distance", "-c", config_filename],
+                    ["bridge", "-c", config_filename, "-s"],
+                    ["nullspace", "-c", config_filename],
+                    ["joint_p_controller", "-c", config_filename],
+                    ["debug_jointlimits", "-c", config_filename],
                     ["roboview", config_filename, yarp_base_portname],
                     ["bar_vis", "-b", yarp_base_portname]
 ]

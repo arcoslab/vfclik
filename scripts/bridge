@@ -20,7 +20,7 @@ yarp.Network.init()
 import time
 from math import pi
 
-import command_mixer
+import vfclik.command_mixer as command_mixer
 import sys
 from arcospyu.config_parser import ConfigFileParser
 import ctypes
