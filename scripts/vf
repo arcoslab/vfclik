@@ -183,6 +183,9 @@ while not stop:
 
     #Param Receiving
     parambottle = paramPort.read(False)
+    #pending=paramPort.getPendingReads()
+    #for i in xrange(pending):
+    #    parambottle = paramPort.read(False)
     if (start_attractor or (parambottle and (parambottle.size() >= 1))):
         dprint("setting vectorfield")
         #eprint("COUNTER: ", counter_test)
@@ -473,7 +476,7 @@ while not stop:
 #         qdotOutbottle.addDouble(i)
 #       qdotOutPort.write()
 
-    yarp.Time.delay(0.1005)  # 0.001
+    yarp.Time.delay(0.001005)  # 0.001
 
 qdotOutPort.close() 
 qInPort.close()

@@ -81,6 +81,9 @@ objects = {}
 init_pose=False
 while not stop:
     objectbottle = objectPort.read(False)
+    #pending=objectPort.getPendingReads()
+    #for i in xrange(pending):
+    #    objectbottle = objectPort.read(False)
     if not objectbottle and (not init_pose):
         yarp.Time_delay(0.005)
         continue

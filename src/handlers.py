@@ -15,12 +15,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import yarp, time
+from numpy import array
+from numpy import pi
+from time import sleep
+from arcospyu.yarp_tools.yarp_comm_helpers import yarp_connect_blocking, new_port
+from arcospyu.kdl_helpers.kdl_helpers import frame_to_list
 class HandleArm(object):
     
-    def __init__(self,arm_portbasename, handlername="HandlerArm"):
+    def __init__(self,arm_portbasename, handlername="/HandlerArm"):
         import imp
         prename=arm_portbasename
-        full_name=prename+ "/" + handlername
+        full_name=prename+ handlername
 
         self.outp=yarp.BufferedPortBottle()
         outp_name=full_name +"/toObjectFeeder"
@@ -33,6 +39,7 @@ class HandleArm(object):
         self.goaldistp=yarp.BufferedPortBottle()
         goaldistp_name=full_name + "/fromGoalDistance"
         self.goaldistp.open(goaldistp_name)
+        #self.goaldistp.setStrict()
 
         self.posep=yarp.BufferedPortBottle()
         posep_name=full_name+"/pose:i"
@@ -60,7 +67,7 @@ class HandleArm(object):
         ''' Receives a PyKDL Frame and sends it to VF as a tool
         '''
 
-        #print "Setting the tool of the arm to: "
+        print "Setting the tool of the arm to: ", toolframe
 #        pp_F(toolframe)
         
         bout = self.toolp.prepare() 
@@ -140,9 +147,12 @@ class HandleArm(object):
         cur_time=init_time
         difference=array([0.0,0.0])
         result=False
-        for i in xrange(10):
-            while not self.goaldistp.read(False):
-                sleep(0.01)
+        pending=self.goaldistp.getPendingReads()
+        for i in xrange(pending):
+            print "GOAL dist: ", self.goaldistp.read(False)
+            #while not self.goaldistp.read(False):
+            #    print "SDFASDFASDF: ", i
+            #    sleep(0.01)
         if len(goal_precision)==2:
             if wait>0.0:
                 goal_precision_np=array(goal_precision)
@@ -161,7 +171,7 @@ class HandleArm(object):
                                 pos_dist=l.get(1).asDouble()
                                 orient_dist=(l.get(2).asDouble())*pi/180.0
                         #compare q vs js, if q is within tolerance, then break
-                        #print "Cartesian distance:" , pos_dist, orient_dist
+                        print "Cartesian distance:" , pos_dist, orient_dist
                         difference=array([pos_dist,orient_dist])
                         if pos_dist<goal_precision[0] and orient_dist<goal_precision[1]:
                             result=True
