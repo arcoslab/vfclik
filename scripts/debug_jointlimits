@@ -16,7 +16,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import sys
-from arcospyu.lafik import Lafik
+from arcospyu.robot_tools import Lafik
 from math import pi
 import yarp
 import sys

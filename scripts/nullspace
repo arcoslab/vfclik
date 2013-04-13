@@ -28,7 +28,7 @@ import sys
 from arcospyu.config_parser import ConfigFileParser
 config_parser=ConfigFileParser(sys.argv)
 options, args, config = config_parser.get_all()
-from arcospyu import lafik
+from arcospyu.robot_tools import Lafik
 
 import signal
 def signal_handler(sig, frame):
@@ -56,7 +56,7 @@ change_ps_name('nullspace.py')
 
 
 
-rob = lafik.Lafik(config)
+rob = Lafik(config)
 
 gain = 0.5
 

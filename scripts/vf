@@ -23,7 +23,6 @@ points in orientation
 '''
 
 import sys
-sys.path.append("../yarp_tools")
 
 from math import sqrt
 from numpy import dot
@@ -37,7 +36,7 @@ from vfl.vectorFields import goalObstacleVField2
 from vfl.vectorFields import trapezoidWeight
 from numpy import array
 from numpy import zeros
-from arcospyu.lafik import Lafik
+from arcospyu.robot_tools import Lafik
 import vfl.vfl as vf
 from arcospyu.yarp_tools.yarp_comm_helpers import sendListPort, readListPort, listToKdlFrame, kdlFrameToList
 from arcospyu.config_parser import ConfigFileParser
