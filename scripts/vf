@@ -265,7 +265,7 @@ while not stop:
     weightbottle = weightPort.read(False)
     if (weightbottle and (weightbottle.size() >= 1)):
         #print "WEIGHTS: ",weightbottle.toString()
-        weight_type = weightbottle.get(0).asString().c_str()
+        weight_type = weightbottle.get(0).asString()
 
 
         if (weight_type == 't'):   #Task space
