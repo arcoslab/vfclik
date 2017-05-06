@@ -323,7 +323,7 @@ class HandleBridge(object):
     def set_weights(self,type_of="joint",weights=[1]*7):
         bout=self.VFW_port.prepare()
         bout.clear()
-        if type_of="task":
+        if type_of=="task":
             bout.addString('t')
         else:
             bout.addString('j')
