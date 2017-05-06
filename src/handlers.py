@@ -316,10 +316,17 @@ class HandleBridge(object):
         else:
             print "There's no torso"
 
-    def set_VFW(self,weights):
+    def set_VFW(self, type_of="joint", weights=[1]*7): #back compatibility
+        print "deprecated, use set_weights instead"
+        self.set_weights(type_of, weights)
+            
+    def set_weights(self,type_of="joint",weights=[1]*7):
         bout=self.VFW_port.prepare()
         bout.clear()
-        bout.addString('j')
+        if type_of="task":
+            bout.addString('t')
+        else:
+            bout.addString('j')
         for w in weights:
             bout.addDouble(w)
         self.VFW_port.write(True)
