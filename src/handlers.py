@@ -375,6 +375,7 @@ class HandleJController(object):
                     if bin:
                         q=array(map(yarp.Value.asDouble,map(bin.get, range(bin.size()))))
                         #compare q vs js, if q is within tolerance, then break
+                        
                         difference=js-q
                         #print "Difference", difference, (js-goal_precision_np)<=q, (js+goal_precision_np)>=q
                         if (((js-goal_precision_np)<=q)*((js+goal_precision_np)>=q)).all():
