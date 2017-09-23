@@ -121,6 +121,14 @@ class LWR_Bridge():
         # yarp port for writing
         self.qcmd_port = yarp.BufferedPortBottle()
         self.qcmd_port.open(config.robotarm_portbasename+config.qcmd_portname)
+        yconnect=yarp.Network.connect
+        cstyle=yarp.ContactStyle()
+        cstyle.persistent=True
+        robotbn=config.robotarm_portbasename
+        yconnect(robotbn+config.qcmd_portname, robotbn+"/robot/cmd", cstyle)
+        yconnect(robotbn+"/robot/cmded", robotbn+config.qcmded_portname, cstyle)
+        yconnect(robotbn+"/robot/pos", robotbn+config.qin_portname, cstyle)
+
 
 
     def close(self):
@@ -546,7 +554,9 @@ def main():
     yconnect(encoders_portname, robotbn+"/roboview/qin", cstyle)
     yconnect(encoders_portname, robotbn+"/debug/qin", cstyle)
     print "TESTTT", config.qcmd_portname
-    yconnect(robotbn+config.qcmd_portname, robotbn+"/joint_sim/qvin", cstyle)
+    if options.sim:
+        yconnect(robotbn+config.qcmd_portname, robotbn+"/joint_sim/qvin", cstyle)
+
     yconnect(robotbn+config.qcmd_portname, robotbn+"/roboview/qvin", cstyle)
 
     bridge.open()

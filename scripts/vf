@@ -158,7 +158,7 @@ def get_weight_matrix(wbottle,n_vars):
             weights[i][i] = wbottle.get(i + 1).asDouble()
         return(weights)
     else:
-        dprint("WARNING: Wrong size of %s weights. Ignored" %wbottle.get(0).asString().c_str())
+        dprint("WARNING: Wrong size of %s weights. Ignored" %wbottle.get(0).asString())
         return(None)
 
 

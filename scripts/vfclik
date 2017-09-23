@@ -50,7 +50,6 @@ def main():
     processes_args=[["vf", "-c", config_filename],
                     ["object_feeder", "-c", config_filename],
                     ["monitor_distance", "-c", config_filename],
-                    ["bridge", "-c", config_filename, "-s"],
                     ["nullspace", "-c", config_filename],
                     ["joint_p_controller", "-c", config_filename],
                     ["debug_jointlimits", "-c", config_filename]#,
@@ -59,6 +58,9 @@ def main():
 ]
     if options.sim:
         processes_args+=[["joint_sim", "-c", os.getcwd()+"/"+config_filename]]
+        processes_args+=[["bridge", "-c", config_filename, "-s"]]
+    else:
+        processes_args+=[["bridge", "-c", config_filename]]
 
     #print processes_args
 
