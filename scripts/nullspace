@@ -91,7 +91,7 @@ def nullspace(P, J):
   B = restrict(P, J)
   u,s,vh = svd(B.T)
   i=0
-  while (i<7) and (s[i] >= 1e-8):
+  while (i<nJoints) and (s[i] >= 1e-8):
     ## print sig[i]
     ## print u[:, i].T
     if norm(sig[i]*u[:, i] - lastvec[:, i]) > norm(sig[i]*u[:, i]+lastvec[:, i]):

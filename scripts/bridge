@@ -125,7 +125,10 @@ class LWR_Bridge():
         cstyle=yarp.ContactStyle()
         cstyle.persistent=True
         robotbn=config.robotarm_portbasename
-        yconnect(robotbn+config.qcmd_portname, robotbn+"/robot/cmd", cstyle)
+        if self.sim:
+            yconnect(robotbn+config.qcmd_portname, robotbn+"/joint_sim/qvin", cstyle)
+        else:
+            yconnect(robotbn+config.qcmd_portname, robotbn+"/robot/cmd", cstyle)
         yconnect(robotbn+"/robot/cmded", robotbn+config.qcmded_portname, cstyle)
         yconnect(robotbn+"/robot/pos", robotbn+config.qin_portname, cstyle)
 
@@ -139,7 +142,7 @@ class LWR_Bridge():
 
     def read_pos(self):
         bottle = self.qin_port.read(True)
-        if(bottle.size() == self.nJoints):
+        if(bottle and (bottle.size() == self.nJoints)):
             self.last_q = ut_bottle2list(bottle)
 
         bottle = self.qcmded_port.read(False)
@@ -554,9 +557,6 @@ def main():
     yconnect(encoders_portname, robotbn+"/roboview/qin", cstyle)
     yconnect(encoders_portname, robotbn+"/debug/qin", cstyle)
     print "TESTTT", config.qcmd_portname
-    if options.sim:
-        yconnect(robotbn+config.qcmd_portname, robotbn+"/joint_sim/qvin", cstyle)
-
     yconnect(robotbn+config.qcmd_portname, robotbn+"/roboview/qvin", cstyle)
 
     bridge.open()
