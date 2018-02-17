@@ -15,28 +15,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from numpy.linalg import svd,norm
-from numpy import sum,where
-from numpy import *
-
-import scipy as Sci
-import scipy.linalg
+from numpy.linalg import svd, norm, pinv
+from numpy import sum, where
+from numpy import mat, eye, zeros, matrix
 
 import yarp
 
 import sys
 from arcospyu.config_parser import ConfigFileParser
-config_parser=ConfigFileParser(sys.argv)
-options, args, config = config_parser.get_all()
 from arcospyu.robot_tools import Lafik
-
 import signal
-def signal_handler(sig, frame):
-    print "Terminating ", __file__
-    global stop
-    stop=True
 
-stop=False
+
+config_parser = ConfigFileParser(sys.argv)
+options, args, config = config_parser.get_all()
+
+
+def signal_handler(sig, frame):
+    print("Terminating ", __file__)
+    global stop
+    stop = True
+
+
+stop = False
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
@@ -49,12 +50,11 @@ def change_ps_name(name):
         import ctypes
         libc = ctypes.CDLL('libc.so.6')
         libc.prctl(15, name, 0, 0, 0)
-    except:
-        pass    
-    
+    except Exception:
+        pass
+
+
 change_ps_name('nullspace.py')
-
-
 
 rob = Lafik(config)
 
@@ -62,130 +62,131 @@ gain = 0.5
 
 nJoints = config.nJoints
 
-def matrixrank(A,tol=1e-8):
-    s = svd(A,compute_uv=0)
-    return sum( where( s>tol, 1, 0 ) )
+
+def matrixrank(A, tol=1e-8):
+    s = svd(A, compute_uv=0)
+    return sum(where(s > tol, 1, 0))
 
 
-# return all nullspace vectors, given the robot jacobian and the projection into the task space that we care about
+# return all nullspace vectors, given the robot jacobian and the projection
+# into the task space that we care about
 # (a base of the nullspace of the function f: x -> P*J*x)
 def restrict(P, J):
-  global nJoints
-  pJ = P*J
-  pJt = linalg.pinv(pJ)
-  return (eye(nJoints) - pJt*pJ)
+    global nJoints
+    pJ = P * J
+    pJt = pinv(pJ)
+    return (eye(nJoints) - pJt * pJ)
+
 
 def sign(n):
-  if n < 0:
-    return -1
-  elif n == 0:
-    return 0
-  else:
-    return 1
+    if n < 0:
+        return -1
+    elif n == 0:
+        return 0
+    else:
+        return 1
 
-sig=[1]*nJoints
-lastvec=mat(zeros((nJoints,nJoints)))
+
+sig = [1] * nJoints
+lastvec = mat(zeros((nJoints, nJoints)))
+
 
 def nullspace(P, J):
-  global sig,lastvec
-  B = restrict(P, J)
-  u,s,vh = svd(B.T)
-  i=0
-  while (i<nJoints) and (s[i] >= 1e-8):
-    ## print sig[i]
-    ## print u[:, i].T
-    if norm(sig[i]*u[:, i] - lastvec[:, i]) > norm(sig[i]*u[:, i]+lastvec[:, i]):
-      sig[i] = -sig[i]
-    u[:, i] = u[:, i]*sig[i]
-    lastvec[:, i] = u[:, i]
-    i += 1
-  #print "rank=%d" % ( i )
-  return u[:, 0:i].T
+    global sig, lastvec
+    B = restrict(P, J)
+    u, s, vh = svd(B.T)
+    i = 0
+    while (i < nJoints) and (s[i] >= 1e-8):
+        if norm(sig[i] * u[:, i] - lastvec[:, i]) > norm(
+                sig[i] * u[:, i] + lastvec[:, i]):
+            sig[i] = -sig[i]
+        u[:, i] = u[:, i] * sig[i]
+        lastvec[:, i] = u[:, i]
+        i += 1
+    return u[:, 0:i].T
 
-def move_in_nullspace(P,J,control):
-  global nJoints
-  ns = nullspace(P,J)
-  #### ns = restrict(P,J)[0:4]
-  n = min(nJoints,len(control), ns. shape[0])
-  qdot = mat(zeros((nJoints)))
-  for i in range(n):
-    qdot += ns[i,:]*control[i]
-  return [qdot[0,i] for i in range(nJoints)]
+
+def move_in_nullspace(P, J, control):
+    global nJoints
+    ns = nullspace(P, J)
+    n = min(nJoints, len(control), ns.shape[0])
+    qdot = mat(zeros((nJoints)))
+    for i in range(n):
+        qdot += ns[i, :] * control[i]
+    return [qdot[0, i] for i in range(nJoints)]
+
 
 def check_limits(q, qdot, limits):
-  scale = 0.3
-  margin = 0.0
-  n = len(limits)
-  for i in range(n):
-    d =  q[i] + scale*qdot[i]
-    if d < limits[i][0]+margin or d > limits[i][1]-margin:
-      print "limit %d: (q=%f qdot=%f l=[%f .. %f])" % (i, q[i], qdot[i], limits[i][0], limits[i][1])
-      return [0]*n
-  return qdot
+    scale = 0.3
+    margin = 0.0
+    n = len(limits)
+    for i in range(n):
+        d = q[i] + scale * qdot[i]
+        if d < limits[i][0] + margin or d > limits[i][1] - margin:
+            print("limit %d: (q=%f qdot=%f l=[%f .. %f])" % (i, q[i], qdot[i],
+                                                             limits[i][0],
+                                                             limits[i][1]))
+            return [0] * n
+    return qdot
 
-    
 
 def main():
-  global gain
-  #P = matrix('1 0 0 0 0 0; 0 1 0 0 0 0; 0 0 1 0 0 0; 0 0 0 1 0 0; 0 0 0 0 1 0; 0 0 0 0 0 0')
-  P = mat(eye(6))
-  control = [0]*4
+    global gain
+    P = mat(eye(6))
+    control = [0] * 4
 
-  qin_port = yarp.BufferedPortBottle()
-  qdotout_port = yarp.BufferedPortBottle()
-  control_port = yarp.BufferedPortBottle() # expects four-float-bottles
+    qin_port = yarp.BufferedPortBottle()
+    qdotout_port = yarp.BufferedPortBottle()
+    control_port = yarp.BufferedPortBottle()  # expects four-float-bottles
 
-  basename=config.robotarm_portbasename+"/nullspace"
-  qinpn=basename+'/qin'
-  qin_port.open(qinpn)
-  qdotoutpn=basename+'/qdotout'
-  qdotout_port.open(qdotoutpn)
-  controlpn=basename+'/control'
-  control_port.open(controlpn)
+    basename = config.robotarm_portbasename + "/nullspace"
+    qinpn = basename + '/qin'
+    qin_port.open(qinpn)
+    qdotoutpn = basename + '/qdotout'
+    qdotout_port.open(qdotoutpn)
+    controlpn = basename + '/control'
+    control_port.open(controlpn)
 
+    robotbn = config.robotarm_portbasename
+    yconnect = yarp.Network.connect
+    cstyle = yarp.ContactStyle()
+    cstyle.persistent = True
+    yconnect(qdotoutpn, robotbn + "/bridge/nullcmd", cstyle)
 
-  robotbn=config.robotarm_portbasename
-  yconnect=yarp.Network.connect
-  cstyle=yarp.ContactStyle()
-  cstyle.persistent=True
-  yconnect(qdotoutpn, robotbn+"/bridge/nullcmd", cstyle)
+    #  limits = rob.get_limits()
 
-#  limits = rob.get_limits()
+    while not stop:
+        bin = qin_port.read(False)
+        if bin:
+            q = [bin.get(i).asDouble() for i in range(bin.size())]
+            for i in range(bin.size()):
+                rob.jnt_pos[i] = bin.get(i).asDouble()
+            limits = rob.get_limits()
 
-  while not stop:
-    bin = qin_port.read(False)
-    if bin:
-      q = [bin.get(i).asDouble() for i in range(bin.size())]
-      for i in range(bin.size()):
-        rob.jnt_pos[i] = bin.get(i).asDouble()
-      limits=rob.get_limits()
-    
-      bcontrol = control_port.read(False)
-      if bcontrol != None:
-        control = [bcontrol.get(i).asDouble() for i in range(bcontrol.size())]
-    
-      J = matrix(rob.jac_list())
-      qdot = move_in_nullspace(P,J,control)
+            bcontrol = control_port.read(False)
+            if bcontrol is not None:
+                control = [
+                    bcontrol.get(i).asDouble() for i in range(bcontrol.size())
+                ]
 
-      ##print "tsk-disturbance:"
-      ##print J*mat(qdot).T
-    
-      qdot = check_limits(q, qdot, limits)
+            J = matrix(rob.jac_list())
+            qdot = move_in_nullspace(P, J, control)
 
-      bout = qdotout_port.prepare()
-      bout.clear()
-      for i in qdot:
-        bout.addDouble(i*gain)
-      qdotout_port.write()
+            qdot = check_limits(q, qdot, limits)
 
-    else:
-        yarp.Time_delay(0.01)
+            bout = qdotout_port.prepare()
+            bout.clear()
+            for i in qdot:
+                bout.addDouble(i * gain)
+            qdotout_port.write()
 
-  qin_port.close()
-  qdotout_port.close()
-  control_port.close()
+        else:
+            yarp.Time_delay(0.01)
+
+    qin_port.close()
+    qdotout_port.close()
+    control_port.close()
 
 
 if __name__ == "__main__":
     main()
-
