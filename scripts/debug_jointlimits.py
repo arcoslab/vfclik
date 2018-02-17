@@ -17,51 +17,52 @@
 
 import sys
 from arcospyu.robot_tools import Lafik
-from math import pi
 import yarp
-import sys
 import signal
-def signal_handler(sig, frame):
-    print "Terminating ", __file__
-    global stop
-    stop=True
+from arcospyu.config_parser import ConfigFileParser
 
-stop=False
+
+def signal_handler(sig, frame):
+    print("Terminating ", __file__)
+    global stop
+    stop = True
+
+
+stop = False
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
-from arcospyu.config_parser import ConfigFileParser
-config_parser=ConfigFileParser(sys.argv)
+
+config_parser = ConfigFileParser(sys.argv)
 options, args, config = config_parser.get_all()
 
 yarp.Network.init()
 baseportname = config.robotarm_portbasename + "/debug"
 qinPort = yarp.BufferedPortBottle()
-qinpn=baseportname + "/qin"
+qinpn = baseportname + "/qin"
 qinPort.open(qinpn)
 qdistOutPort = yarp.BufferedPortBottle()
-qdistoutpn=baseportname + "/qdist"
+qdistoutpn = baseportname + "/qdist"
 qdistOutPort.open(qdistoutpn)
 
+robotbn = config.robotarm_portbasename
+yconnect = yarp.Network.connect
+cstyle = yarp.ContactStyle()
+cstyle.persistent = True
+yconnect(qdistoutpn, robotbn + "/bar/in", cstyle)
 
-robotbn=config.robotarm_portbasename
-yconnect=yarp.Network.connect
-cstyle=yarp.ContactStyle()
-cstyle.persistent=True
-yconnect(qdistoutpn, robotbn+"/bar/in", cstyle)
-
-
-robot=Lafik(config)
+robot = Lafik(config)
 
 while not stop:
     qinbottle = qinPort.read(False)
     if qinbottle and qinbottle.size() == robot.numJnts:
-        robot.jntsList=map(yarp.Value.asDouble,map(qinbottle.get,range(qinbottle.size())))
-        distances=[]
-        for i in zip(robot.jntsList,robot.joint_limits):
-            distances.append(robot.distToCenter(i[1],i[0]))
-        distances2=[x*100 for x in distances]
-        qdistOutbottle=qdistOutPort.prepare()
+        robot.jntsList = map(yarp.Value.asDouble,
+                             map(qinbottle.get, range(qinbottle.size())))
+        distances = []
+        for i in zip(robot.jntsList, robot.joint_limits):
+            distances.append(robot.distToCenter(i[1], i[0]))
+        distances2 = [x * 100 for x in distances]
+        qdistOutbottle = qdistOutPort.prepare()
         qdistOutbottle.clear()
         for i in distances2:
             qdistOutbottle.addDouble(i)
@@ -71,7 +72,3 @@ while not stop:
 qdistOutPort.close()
 qinPort.close()
 yarp.Network.fini()
-
-
-
-
