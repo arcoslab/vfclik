@@ -12,9 +12,9 @@ setup(
     url='http://www.arcoslab.org/',
     package_dir={'vfclik': 'src'},
     packages=['vfclik'],
-    scripts=['scripts/vfclik', 'scripts/bridge',
-             'scripts/debug_jointlimits',
-             'scripts/joint_p_controller',
-             'scripts/monitor_distance', 'scripts/nullspace',
-             'scripts/object_feeder', 'scripts/vf', 'scripts/vfclik']
+    scripts=['scripts/vfclik.py', 'scripts/bridge.py',
+             'scripts/debug_jointlimits.py',
+             'scripts/joint_p_controller.py',
+             'scripts/monitor_distance.py', 'scripts/nullspace.py',
+             'scripts/object_feeder.py', 'scripts/vf.py', 'scripts/vfclik.py']
 )
