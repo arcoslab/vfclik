@@ -73,21 +73,21 @@ def main():
 
     # starting yarp modules
     processes_args = [
-        ["vf", "-c", config_filename],
-        ["object_feeder", "-c", config_filename],
-        ["monitor_distance", "-c", config_filename],
-        ["nullspace", "-c", config_filename],
-        ["joint_p_controller", "-c", config_filename],
-        ["debug_jointlimits", "-c", config_filename]
+        ["vf.py", "-c", config_filename],
+        ["object_feeder.py", "-c", config_filename],
+        ["monitor_distance.py", "-c", config_filename],
+        ["nullspace.py", "-c", config_filename],
+        ["joint_p_controller.py", "-c", config_filename],
+        ["debug_jointlimits.py", "-c", config_filename]
     ]
     if options.sim:
         processes_args += [[
             "joint_sim", "-c",
             os.getcwd() + "/" + config_filename
         ]]
-        processes_args += [["bridge", "-c", config_filename, "-s"]]
+        processes_args += [["bridge.py", "-c", config_filename, "-s"]]
     else:
-        processes_args += [["bridge", "-c", config_filename]]
+        processes_args += [["bridge.py", "-c", config_filename]]
 
     dprint("Starting processes")
     pmanager = PManager(processes_args)
