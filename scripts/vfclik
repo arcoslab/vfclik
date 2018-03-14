@@ -38,13 +38,16 @@ def main():
     parser.add_option("-i", "--instance", dest="instance", default="right", type="string", help="instance")
     parser.add_option("-d", "--config_dir", dest="config_dir", default="../config_data/lwr/", type="string", help="config data directory")
     parser.add_option("-s", "--simulation", action="store_true", dest="sim", default=False,help="Simulation")
+    parser.add_option("-y", "--port-prefix", dest="port_prefix", default="",
+                      type="string", help="Robot port prefix")
     (options, args)=parser.parse_args(sys.argv[1:])
     config_filename=options.config_dir+"config-"+options.robot+"-"+options.instance+".py"
     print "Config filename: ", config_filename
     if not os.path.exists(config_filename):
         print "Config filename: ", config_filename, " not found, exiting"
         sys.exit(-1)
-    yarp_base_portname="/"+options.robot+"/"+options.instance
+    port_prefix = options.port_prefix
+    yarp_base_portname=port_prefix+"/"+options.robot+"/"+options.instance
 
     #starting yarp modules
     processes_args=[["vf", "-c", config_filename],
