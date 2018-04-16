@@ -16,5 +16,5 @@ setup(
              'scripts/debug_jointlimits',
              'scripts/joint_p_controller',
              'scripts/monitor_distance', 'scripts/nullspace',
-             'scripts/object_feeder', 'scripts/vf', 'scripts/vfclik']
+             'scripts/object_feeder', 'scripts/vf']
 )

@@ -82,8 +82,7 @@ def main():
     ]
     if options.sim:
         processes_args += [[
-            "joint_sim", "-c",
-            os.getcwd() + "/" + config_filename
+            "joint_sim", "-c", config_filename
         ]]
         processes_args += [["bridge", "-c", config_filename, "-s"]]
     else:
