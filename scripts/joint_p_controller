@@ -55,7 +55,8 @@ kp = 1.5  # 0.8
 delta = 0.087  # distance to have reached
 
 yarp.Network.init()
-basename = "/" + config.arm_type + "/" + config.arm_instance + "/jpctrl"
+robotbn = options.namespace + config.robotarm_portbasename
+basename =  robotbn + "/jpctrl"
 inPort = yarp.BufferedPortBottle()
 inportpn = basename + "/in"
 inPort.open(inportpn)
@@ -70,7 +71,6 @@ atGoalPort = yarp.BufferedPortBottle()
 atgoalpn = basename + "/at_goal"
 atGoalPort.open(atgoalpn)
 
-robotbn = config.robotarm_portbasename
 yconnect = yarp.Network.connect
 cstyle = yarp.ContactStyle()
 cstyle.persistent = True

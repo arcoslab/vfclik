@@ -37,7 +37,7 @@ config_parser = ConfigFileParser(sys.argv)
 options, args, config = config_parser.get_all()
 
 yarp.Network.init()
-baseportname = config.robotarm_portbasename + "/debug"
+baseportname = options.namespace + config.robotarm_portbasename + "/debug"
 qinPort = yarp.BufferedPortBottle()
 qinpn = baseportname + "/qin"
 qinPort.open(qinpn)

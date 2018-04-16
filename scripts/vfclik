@@ -50,6 +50,13 @@ def main():
         type="string",
         help="instance")
     parser.add_option(
+        "-n",
+        "--namespace",
+        dest="namespace",
+        default="/0",
+        type="string",
+        help="ARCOS-Lab yarp basename")
+    parser.add_option(
         "-d",
         "--config_dir",
         dest="config_dir",
@@ -73,20 +80,20 @@ def main():
 
     # starting yarp modules
     processes_args = [
-        ["vf", "-c", config_filename],
-        ["object_feeder", "-c", config_filename],
-        ["monitor_distance", "-c", config_filename],
-        ["nullspace", "-c", config_filename],
-        ["joint_p_controller", "-c", config_filename],
-        ["debug_jointlimits", "-c", config_filename]
+        ["vf", "-c", config_filename, "-n", options.namespace],
+        ["object_feeder", "-c", config_filename, "-n", options.namespace],
+        ["monitor_distance", "-c", config_filename, "-n", options.namespace],
+        ["nullspace", "-c", config_filename, "-n", options.namespace],
+        ["joint_p_controller", "-c", config_filename, "-n", options.namespace],
+        ["debug_jointlimits", "-c", config_filename, "-n", options.namespace]
     ]
     if options.sim:
         processes_args += [[
-            "joint_sim", "-c", config_filename
+            "joint_sim", "-c", config_filename, "-n", options.namespace
         ]]
-        processes_args += [["bridge", "-c", config_filename, "-s"]]
+        processes_args += [["bridge", "-c", config_filename, "-s", "-n", options.namespace]]
     else:
-        processes_args += [["bridge", "-c", config_filename]]
+        processes_args += [["bridge", "-c", config_filename, "-n", options.namespace]]
 
     dprint("Starting processes")
     pmanager = PManager(processes_args)

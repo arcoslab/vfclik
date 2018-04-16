@@ -139,7 +139,8 @@ def main():
     qdotout_port = yarp.BufferedPortBottle()
     control_port = yarp.BufferedPortBottle()  # expects four-float-bottles
 
-    basename = config.robotarm_portbasename + "/nullspace"
+    robotbn = options.namespace + config.robotarm_portbasename
+    basename = robotbn + "/nullspace"
     qinpn = basename + '/qin'
     qin_port.open(qinpn)
     qdotoutpn = basename + '/qdotout'
@@ -147,7 +148,6 @@ def main():
     controlpn = basename + '/control'
     control_port.open(controlpn)
 
-    robotbn = config.robotarm_portbasename
     yconnect = yarp.Network.connect
     cstyle = yarp.ContactStyle()
     cstyle.persistent = True

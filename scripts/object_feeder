@@ -54,7 +54,7 @@ options, args, config = config_parser.get_all()
 
 yarp.Network.init()
 
-robotbn = config.robotarm_portbasename
+robotbn = options.namespace + config.robotarm_portbasename
 base_name = robotbn + "/ofeeder"
 paramPort = yarp.BufferedPortBottle()
 parampn = base_name + "/param"

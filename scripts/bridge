@@ -70,7 +70,8 @@ max_vel = config.max_vel
 
 # other options
 synchronized = False
-yarpbridgeportbasename = config.robotarm_portbasename + "/bridge"
+robotbn = options.namespace + config.robotarm_portbasename
+yarpbridgeportbasename = robotbn + "/bridge"
 encoders_portname = yarpbridgeportbasename + "/encoders"
 vectorfieldcmd_portname = yarpbridgeportbasename + "/vectorfieldcmd"
 nullcmd_portname = yarpbridgeportbasename + "/nullcmd"
@@ -119,18 +120,17 @@ class LWR_Bridge():
     def open(self):
         # yarp ports for reading
         self.qin_port = yarp.BufferedPortBottle()
-        self.qin_port.open(config.robotarm_portbasename + config.qin_portname)
+        self.qin_port.open(robotbn + config.qin_portname)
         self.qcmded_port = yarp.BufferedPortBottle()
         self.qcmded_port.open(
-            config.robotarm_portbasename + config.qcmded_portname)
+            robotbn + config.qcmded_portname)
         # yarp port for writing
         self.qcmd_port = yarp.BufferedPortBottle()
         self.qcmd_port.open(
-            config.robotarm_portbasename + config.qcmd_portname)
+            robotbn + config.qcmd_portname)
         yconnect = yarp.Network.connect
         cstyle = yarp.ContactStyle()
         cstyle.persistent = True
-        robotbn = config.robotarm_portbasename
         if self.sim:
             yconnect(robotbn + config.qcmd_portname,
                      robotbn + "/joint_sim/qvin", cstyle)
@@ -575,7 +575,6 @@ def main():
     maxvel_port.open(maxvel_portname)
     maxvel_port.setStrict(True)
 
-    robotbn = config.robotarm_portbasename
     yconnect = yarp.Network.connect
     cstyle = yarp.ContactStyle()
     cstyle.persistent = True

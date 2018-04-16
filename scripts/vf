@@ -78,7 +78,7 @@ pose_in_port = yarp.BufferedPortBottle()
 vector_port = yarp.BufferedPortBottle()
 goal_port = yarp.BufferedPortBottle()
 
-robotbn = config.robotarm_portbasename
+robotbn = options.namespace + config.robotarm_portbasename
 portbasename = robotbn + "/vectorField"
 qdotoutpn = portbasename + "/qdotOut"
 qinpn = portbasename + "/qIn"

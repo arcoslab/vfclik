@@ -58,7 +58,7 @@ options, args, config = config_parser.get_all()
 yarp.Network.init()
 
 robotbn = config.robotarm_portbasename
-base_name = robotbn + "/dmonitor"
+base_name = options.namespace + robotbn + "/dmonitor"
 currentPosIn = yarp.BufferedPortBottle()
 currentpospn = base_name + "/currentPosIn"
 currentPosIn.open(currentpospn)
