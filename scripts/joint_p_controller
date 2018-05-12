@@ -22,6 +22,7 @@ from numpy import array
 import sys
 import signal
 from arcospyu.config_parser import ConfigFileParser
+from arcospyu.yarp_tools.yarp_comm_helpers import ArcosYarp
 
 
 def signal_handler(sig, frame):
@@ -55,26 +56,23 @@ kp = 1.5  # 0.8
 delta = 0.087  # distance to have reached
 
 yarp.Network.init()
+arm_base_name=config.robotarm_portbasename
+module_base_name=arm_base_name+"/jpctrl"
+yarp_ctrl=ArcosYarp(ports_name_prefix=options.namespace, module_name_prefix=module_base_name)
+
 robotbn = options.namespace + config.robotarm_portbasename
 basename =  robotbn + "/jpctrl"
-inPort = yarp.BufferedPortBottle()
-inportpn = basename + "/in"
-inPort.open(inportpn)
-refPort = yarp.BufferedPortBottle()
-refpn = basename + "/ref"
-refPort.open(refpn)
-outPort = yarp.BufferedPortBottle()
-outpn = basename + "/out"
-outPort.open(outpn)
+inPort = yarp_ctrl.create_yarp_port("/in", strict=False)
+refPort = yarp_ctrl.create_yarp_port("/ref", strict=False)
+outPort = yarp_ctrl.create_yarp_port("/out", input_port=False)
 
-atGoalPort = yarp.BufferedPortBottle()
-atgoalpn = basename + "/at_goal"
-atGoalPort.open(atgoalpn)
+atGoalPort = yarp_ctrl.create_yarp_port("/at_goal", input_port=False)
 
 yconnect = yarp.Network.connect
 cstyle = yarp.ContactStyle()
 cstyle.persistent = True
-yconnect(outpn, robotbn + "/bridge/jointcmd", cstyle)
+yarp_ctrl.connect(outPort, arm_base_name+"/bridge", "/jointcmd")
+#yconnect(outpn, robotbn + "/bridge/jointcmd", cstyle)
 
 
 def check_limits(ref, cur_pos):
@@ -94,6 +92,8 @@ ref = config.initial_joint_pos
 waitRef = False
 refbottle = yarp.Bottle()
 while not stop:
+    yarp_ctrl.update()
+
     while waitRef:
         # blocking first time
         refbottle = refPort.read()

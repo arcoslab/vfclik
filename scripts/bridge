@@ -22,6 +22,7 @@ from math import pi
 import vfclik.command_mixer as command_mixer
 import sys
 from arcospyu.config_parser import ConfigFileParser
+from arcospyu.yarp_tools.yarp_comm_helpers import ArcosYarp
 import ctypes
 import numpy
 from math import sqrt
@@ -68,6 +69,10 @@ options, args, config = config_parser.get_all()
 config_max_vel = config.max_vel
 max_vel = config.max_vel
 
+arm_base_name=config.robotarm_portbasename
+module_base_name=arm_base_name+"/bridge"
+yarp_ctrl=ArcosYarp(ports_name_prefix=options.namespace, module_name_prefix=module_base_name)
+
 # other options
 synchronized = False
 robotbn = options.namespace + config.robotarm_portbasename
@@ -94,9 +99,9 @@ else:
     pass
 
 
-def construct_arm_bridge(name, sim):
+def construct_arm_bridge(name, sim, yarp_ctrl=None):
     if name == "lwr":
-        return LWR_Bridge(sim)
+        return LWR_Bridge(sim, yarp_ctrl)
     if name == "powercube":
         return Powercube_Bridge(sim)
     if name == "icub":
@@ -107,7 +112,8 @@ def construct_arm_bridge(name, sim):
 
 
 class LWR_Bridge():
-    def __init__(self, sim):
+    def __init__(self, sim, yarp_ctrl):
+        self.yarp_ctrl=yarp_ctrl
         self.sim = sim  # TODO: for now not used. LWR_Bridge works for
         # simulation and for the real robot fine
         self.nJoints = config.nJoints
@@ -119,27 +125,25 @@ class LWR_Bridge():
 
     def open(self):
         # yarp ports for reading
-        self.qin_port = yarp.BufferedPortBottle()
-        self.qin_port.open(robotbn + config.qin_portname)
-        self.qcmded_port = yarp.BufferedPortBottle()
-        self.qcmded_port.open(
-            robotbn + config.qcmded_portname)
+        self.qin_port = self.yarp_ctrl.create_yarp_port(config.qin_portname, strict=False)
+        self.qcmded_port = self.yarp_ctrl.create_yarp_port(config.qcmded_portname, strict=False)
         # yarp port for writing
-        self.qcmd_port = yarp.BufferedPortBottle()
-        self.qcmd_port.open(
-            robotbn + config.qcmd_portname)
+        self.qcmd_port = self.yarp_ctrl.create_yarp_port(config.qcmd_portname, input_port=False)
         yconnect = yarp.Network.connect
         cstyle = yarp.ContactStyle()
         cstyle.persistent = True
         if self.sim:
-            yconnect(robotbn + config.qcmd_portname,
-                     robotbn + "/joint_sim/qvin", cstyle)
+            self.yarp_ctrl.connect(self.qcmd_port, arm_base_name+"/joint_sim", "/qvin")
+            #yconnect(robotbn + config.qcmd_portname, robotbn + "/joint_sim/qvin", cstyle)
         else:
-            yconnect(robotbn + config.qcmd_portname, robotbn + "/robot/cmd",
-                     cstyle)
-        yconnect(robotbn + "/robot/cmded", robotbn + config.qcmded_portname,
-                 cstyle)
-        yconnect(robotbn + "/robot/pos", robotbn + config.qin_portname, cstyle)
+            self.yarp_ctrl.connect(self.qcmd_port, arm_base_name+"/robot", "/cmd")
+            #yconnect(robotbn + config.qcmd_portname, robotbn + "/robot/cmd", cstyle)
+            self.yarp_ctrl.connect(self.qcmded_port, arm_base_name+"/robot", "/cmded")
+            #yconnect(robotbn + "/robot/cmded", robotbn + config.qcmded_portname, cstyle)
+            self.yarp_ctrl.connect(self.qin_port, arm_base_name+"/robot", "/pos")
+            #yconnect(robotbn + "/robot/pos", robotbn + config.qin_portname, cstyle)
+        self.yarp_ctrl.connect(self.qcmd_port, arm_base_name+"/roboview", "/qvin", necessary=False)
+
 
     def close(self):
         self.qin_port.close()
@@ -540,52 +544,33 @@ def ut_readbottle(port, blocking=False, size=-1):
 
 def main():
     global stop
-    bridge = construct_arm_bridge(config.arm_type, options.sim)
-
-    encoders_port = yarp.BufferedPortBottle()
-    encoders_port.open(encoders_portname)
-
-    vectorfieldcmd_port = yarp.BufferedPortBottle()
-    vectorfieldcmd_port.open(vectorfieldcmd_portname)
-
-    nullcmd_port = yarp.BufferedPortBottle()
-    nullcmd_port.open(nullcmd_portname)
-
-    jointcmd_port = yarp.BufferedPortBottle()
-    jointcmd_port.open(jointcmd_portname)
-
-    mechanismcmd_port = yarp.BufferedPortBottle()
-    mechanismcmd_port.open(mechanismcmd_portname)
-
-    xtra1cmd_port = yarp.BufferedPortBottle()
-    xtra1cmd_port.open(xtra1cmd_portname)
-
-    xtra2cmd_port = yarp.BufferedPortBottle()
-    xtra2cmd_port.open(xtra2cmd_portname)
-
-    weight_port = yarp.BufferedPortBottle()
-    weight_port.open(weight_portname)
-    weight_port.setStrict(True)
-
-    current_weight_port = yarp.BufferedPortBottle()
-    current_weight_port.open(current_weight_portname)
-    current_weight_port.setStrict(True)
-
-    maxvel_port = yarp.BufferedPortBottle()
-    maxvel_port.open(maxvel_portname)
-    maxvel_port.setStrict(True)
+    bridge = construct_arm_bridge(config.arm_type, options.sim, yarp_ctrl=yarp_ctrl)
+    encoders_port = yarp_ctrl.create_yarp_port("/encoders", strict=False)
+    vectorfieldcmd_port = yarp_ctrl.create_yarp_port("/vectorfieldcmd", strict=False)
+    nullcmd_port = yarp_ctrl.create_yarp_port("/nullcmd", strict=False)
+    jointcmd_port = yarp_ctrl.create_yarp_port("/jointcmd", strict=False)
+    mechanismcmd_port = yarp_ctrl.create_yarp_port("/mechanismcmd", strict=False)
+    xtra1cmd_port = yarp_ctrl.create_yarp_port("/xtra1cmd", strict=False)
+    xtra2cmd_port = yarp_ctrl.create_yarp_port("/xtra2cmd", strict=False)
+    weight_port = yarp_ctrl.create_yarp_port("/weight")
+    current_weight_port = yarp_ctrl.create_yarp_port("/current_weights")
+    maxvel_port = yarp_ctrl.create_yarp_port("/max_vel")
 
     yconnect = yarp.Network.connect
     cstyle = yarp.ContactStyle()
     cstyle.persistent = True
-    yconnect(encoders_portname, robotbn + "/vectorField/qIn", cstyle)
-    yconnect(encoders_portname, robotbn + "/nullspace/qin", cstyle)
-    yconnect(encoders_portname, robotbn + "/jpctrl/in", cstyle)
-    yconnect(encoders_portname, robotbn + "/roboview/qin", cstyle)
-    yconnect(encoders_portname, robotbn + "/debug/qin", cstyle)
+    yarp_ctrl.connect(encoders_port, arm_base_name+"/vectorField", "/qIn")
+    yarp_ctrl.connect(encoders_port, arm_base_name+"/nullspace", "/qin")
+    yarp_ctrl.connect(encoders_port, arm_base_name+"/jpctrl", "/in")
+    yarp_ctrl.connect(encoders_port, arm_base_name+"/roboview", "/qin", necessary=False)
+    yarp_ctrl.connect(encoders_port, arm_base_name+"/debug", "/qin")
+    # yconnect(encoders_portname, robotbn + "/vectorField/qIn", cstyle)
+    # yconnect(encoders_portname, robotbn + "/nullspace/qin", cstyle)
+    # yconnect(encoders_portname, robotbn + "/jpctrl/in", cstyle)
+    # yconnect(encoders_portname, robotbn + "/roboview/qin", cstyle)
+    # yconnect(encoders_portname, robotbn + "/debug/qin", cstyle)
     print("TEST", config.qcmd_portname)
-    yconnect(robotbn + config.qcmd_portname, robotbn + "/roboview/qvin",
-             cstyle)
+    #yconnect(robotbn + config.qcmd_portname, robotbn + "/roboview/qvin", cstyle)
 
     bridge.open()
 
@@ -597,6 +582,7 @@ def main():
     global direct_control
 
     while (not stop):
+        yarp_ctrl.update()
 
         # if there is no controller, then avoid drifting.
         direct_control = all([w == 0 for w in mixer.weights])

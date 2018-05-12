@@ -22,8 +22,10 @@ from vfl.vfl import length
 from arcospyu.config_parser import ConfigFileParser
 from arcospyu.yarp_tools.yarp_comm_helpers import (recur,
                                                    yarp_queryname_blocking,
-                                                   yarp_connect_blocking)
+                                                   yarp_connect_blocking,
+                                                   ArcosYarp)
 from arcospyu.dprint import dprint, wprint
+from time import sleep
 
 import signal
 
@@ -54,38 +56,43 @@ options, args, config = config_parser.get_all()
 
 yarp.Network.init()
 
+arm_base_name=config.robotarm_portbasename
+module_base_name=arm_base_name+"/ofeeder"
+yarp_ctrl=ArcosYarp(ports_name_prefix=options.namespace, module_name_prefix=module_base_name)
+
 robotbn = options.namespace + config.robotarm_portbasename
 base_name = robotbn + "/ofeeder"
-paramPort = yarp.BufferedPortBottle()
-parampn = base_name + "/param"
-paramPort.setStrict(True)
-paramPort.open(parampn)
-objectPort = yarp.BufferedPortBottle()
-objectpn = base_name + "/object"
-objectPort.open(objectpn)
-objectPort.setStrict(True)
-object_f_port = yarp.BufferedPortBottle()  # port forwarding /object
-object_fpn = base_name + "/objectf"
-object_f_port.open(object_fpn)
-objectOutPort = yarp.BufferedPortBottle()
-objectoutpn = base_name + "/objectOut"
-objectOutPort.open(objectoutpn)
+paramPort = yarp_ctrl.create_yarp_port("/param")
+objectPort = yarp_ctrl.create_yarp_port("/object")
+object_f_port = yarp_ctrl.create_yarp_port("/objectf")  # port forwarding /object
+objectOutPort = yarp_ctrl.create_yarp_port("/objectOut", input_port=False)
 
 yconnect = yarp.Network.connect
 cstyle = yarp.ContactStyle()
 cstyle.persistent = True
-yarp_connect_blocking(parampn, robotbn + "/vectorField/param", timeout=100)
-yconnect(parampn, robotbn + "/vectorField/param", cstyle)
-yconnect(objectoutpn, robotbn + "/dmonitor/objectsIn", cstyle)
-while not yarp_queryname_blocking(robotbn + "/vectorField/param", timeout=10):
-    wprint("Not connected")
-    pass
+yarp_ctrl.connect(paramPort, arm_base_name+"/vectorField", "/param")
+yarp_ctrl.connect(objectOutPort, arm_base_name+"/dmonitor", "/objectsIn")
+
+#yarp_connect_blocking(parampn, robotbn + "/vectorField/param", timeout=100)
+#yconnect(parampn, robotbn + "/vectorField/param", cstyle)
+#yconnect(objectoutpn, robotbn + "/dmonitor/objectsIn", cstyle)
+#while not yarp_queryname_blocking(robotbn + "/vectorField/param", timeout=10):
+#    wprint("Not connected")
+#    pass
+
+while not yarp_ctrl.is_ready():
+    sleep(0.1)
+    print "Waiting for connections ready"
+print "All connections ready"
+
 
 objects = {}
 # object 0 is always the goal, the rest are obstacles
 
 init_pose = False
 while not stop:
+    yarp_ctrl.update()
+
     objectbottle = objectPort.read(False)
     if not objectbottle and (not init_pose):
         yarp.Time_delay(0.005)

@@ -24,6 +24,7 @@ import yarp
 import sys
 from arcospyu.config_parser import ConfigFileParser
 from arcospyu.robot_tools import Lafik
+from arcospyu.yarp_tools.yarp_comm_helpers import ArcosYarp
 import signal
 
 
@@ -135,27 +136,28 @@ def main():
     P = mat(eye(6))
     control = [0] * 4
 
-    qin_port = yarp.BufferedPortBottle()
-    qdotout_port = yarp.BufferedPortBottle()
-    control_port = yarp.BufferedPortBottle()  # expects four-float-bottles
+    arm_base_name=config.robotarm_portbasename
+    module_base_name=arm_base_name+"/nullspace"
+    yarp_ctrl=ArcosYarp(ports_name_prefix=options.namespace, module_name_prefix=module_base_name)
+    qin_port = yarp_ctrl.create_yarp_port("/qin", strict=False)
+    qdotout_port = yarp_ctrl.create_yarp_port("/qdotout", input_port=False)
+    control_port = yarp_ctrl.create_yarp_port("/control", strict=False)  # expects four-float-bottles
 
     robotbn = options.namespace + config.robotarm_portbasename
     basename = robotbn + "/nullspace"
-    qinpn = basename + '/qin'
-    qin_port.open(qinpn)
-    qdotoutpn = basename + '/qdotout'
-    qdotout_port.open(qdotoutpn)
-    controlpn = basename + '/control'
-    control_port.open(controlpn)
 
     yconnect = yarp.Network.connect
     cstyle = yarp.ContactStyle()
     cstyle.persistent = True
-    yconnect(qdotoutpn, robotbn + "/bridge/nullcmd", cstyle)
+
+    yarp_ctrl.connect(qdotout_port, arm_base_name+"/bridge", "/nullcmd")
+    #yconnect(qdotoutpn, robotbn + "/bridge/nullcmd", cstyle)
 
     #  limits = rob.get_limits()
 
     while not stop:
+        yarp_ctrl.update()
+
         bin = qin_port.read(False)
         if bin:
             q = [bin.get(i).asDouble() for i in range(bin.size())]

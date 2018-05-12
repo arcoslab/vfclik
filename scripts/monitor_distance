@@ -25,6 +25,7 @@ from PyKDL import diff
 from math import sqrt
 from math import pi
 from arcospyu.config_parser import ConfigFileParser
+from arcospyu.yarp_tools.yarp_comm_helpers import ArcosYarp
 
 import signal
 
@@ -57,24 +58,17 @@ options, args, config = config_parser.get_all()
 
 yarp.Network.init()
 
+arm_base_name=config.robotarm_portbasename
+module_base_name=arm_base_name+"/dmonitor"
+yarp_ctrl=ArcosYarp(ports_name_prefix=options.namespace, module_name_prefix=module_base_name)
+
 robotbn = config.robotarm_portbasename
 base_name = options.namespace + robotbn + "/dmonitor"
-currentPosIn = yarp.BufferedPortBottle()
-currentpospn = base_name + "/currentPosIn"
-currentPosIn.open(currentpospn)
-objectsInPort = yarp.BufferedPortBottle()
-objectsinpn = base_name + "/objectsIn"
-objectsInPort.open(objectsinpn)
-objectsInPort.setStrict()
-distOutPort = yarp.BufferedPortBottle()
-distoutpn = base_name + "/distOut"
-distOutPort.open(distoutpn)
-track_error_in_port = yarp.BufferedPortBottle()
-track_error_inpn = base_name + "/track_error_in"
-track_error_in_port.open(track_error_inpn)
-tracking_state_port = yarp.BufferedPortBottle()
-tracking_statepn = base_name + "/tracking_state"
-tracking_state_port.open(tracking_statepn)
+currentPosIn = yarp_ctrl.create_yarp_port("/currentPosIn", strict=False)
+objectsInPort = yarp_ctrl.create_yarp_port("/objectsIn")
+distOutPort = yarp_ctrl.create_yarp_port("/distOut", input_port=False, strict=False)
+track_error_in_port = yarp_ctrl.create_yarp_port("/track_error_in", strict=False)
+tracking_state_port = yarp_ctrl.create_yarp_port("/tracking_state", input_port=False, strict=False)
 
 objects = {}
 
@@ -111,6 +105,7 @@ tracking_xyz_state = "on goal"
 tracking_rot_state = "on goal"
 
 while not stop:
+    yarp_ctrl.update()
     # if no goal position have been set, don't do anything
     yarp.Time.delay(0.010)  # slow down the reading loop
     objectsInbottle = objectsInPort.read(False)

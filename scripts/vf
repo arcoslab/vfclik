@@ -37,12 +37,15 @@ from numpy import array
 from numpy import zeros
 from arcospyu.robot_tools import Lafik
 import vfl.vfl as vf
-from arcospyu.yarp_tools.yarp_comm_helpers import (sendListPort, readListPort,
+from arcospyu.yarp_tools.yarp_comm_helpers import (sendListPort,
+                                                   readListPort,
                                                    listToKdlFrame,
-                                                   kdlFrameToList)
+                                                   kdlFrameToList,
+                                                   yarp_connect_blocking,
+                                                   ArcosYarp)
 from arcospyu.config_parser import ConfigFileParser
 from arcospyu.dprint import dprint
-
+from time import sleep
 import PyKDL
 
 import signal
@@ -63,61 +66,71 @@ options, args, config = config_parser.get_all()
 
 yarp.Network.init()
 
-qdotOutPort = yarp.BufferedPortBottle()
-qInPort = yarp.BufferedPortBottle()
-toolPort = yarp.BufferedPortBottle()
-paramPort = yarp.BufferedPortBottle()  # goal and repellers
-posePort = yarp.BufferedPortBottle()
-pose_no_tool_Port = yarp.BufferedPortBottle()
-weightPort = yarp.BufferedPortBottle()  # Joint and Task space weights
-tracking_error_port = yarp.BufferedPortBottle()
-maxvel_port = yarp.BufferedPortBottle()
+arm_base_name=config.robotarm_portbasename
+module_base_name=arm_base_name+"/vectorField"
+yarp_ctrl=ArcosYarp(ports_name_prefix=options.namespace, module_name_prefix=module_base_name)
+qdotOutPort = yarp_ctrl.create_yarp_port("/qdotOut", input_port=False)
+qInPort = yarp_ctrl.create_yarp_port("/qIn")
+toolPort = yarp_ctrl.create_yarp_port("/tool")
+paramPort = yarp_ctrl.create_yarp_port("/param")
+posePort = yarp_ctrl.create_yarp_port("/pose", input_port=False)
+pose_no_tool_Port = yarp_ctrl.create_yarp_port("/pose_no_tool", input_port=False)
+weightPort = yarp_ctrl.create_yarp_port("/weight")  # Joint and Task space weights
+tracking_error_port = yarp_ctrl.create_yarp_port("/track_error", input_port=False)
+maxvel_port = yarp_ctrl.create_yarp_port("/max_vel")
 
 # ports for visualizing
-pose_in_port = yarp.BufferedPortBottle()
-vector_port = yarp.BufferedPortBottle()
-goal_port = yarp.BufferedPortBottle()
+pose_in_port = yarp_ctrl.create_yarp_port("/pose_in")
+vector_port = yarp_ctrl.create_yarp_port("/vector_out", input_port=False)
+goal_port = yarp_ctrl.create_yarp_port("/goal_out", input_port=False)
 
-robotbn = options.namespace + config.robotarm_portbasename
-portbasename = robotbn + "/vectorField"
-qdotoutpn = portbasename + "/qdotOut"
-qinpn = portbasename + "/qIn"
-toolpn = portbasename + "/tool"
-parampn = portbasename + "/param"
-posepn = portbasename + "/pose"
-pose_no_toolpn = portbasename + "/pose_no_tool"
-weightpn = portbasename + "/weight"
-tracking_errorpn = portbasename + "/track_error"
-pose_inpn = portbasename + "/pose_in"
-vectorpn = portbasename + "/vector_out"
-goalpn = portbasename + "/goal_out"
-maxvelpn = portbasename + "/max_vel"
+# robotbn = options.namespace + config.robotarm_portbasename
+# portbasename = robotbn + "/vectorField"
+# qdotoutpn = portbasename + "/qdotOut"
+# qinpn = portbasename + "/qIn"
+# toolpn = portbasename + "/tool"
+# parampn = portbasename + "/param"
+# posepn = portbasename + "/pose"
+# pose_no_toolpn = portbasename + "/pose_no_tool"
+# weightpn = portbasename + "/weight"
+# tracking_errorpn = portbasename + "/track_error"
+# pose_inpn = portbasename + "/pose_in"
+# vectorpn = portbasename + "/vector_out"
+# goalpn = portbasename + "/goal_out"
+# maxvelpn = portbasename + "/max_vel"
 
-paramPort.setStrict(True)
-toolPort.setStrict(True)
-weightPort.setStrict(True)
-maxvel_port.setStrict(True)
+# paramPort.setStrict(True)
+# toolPort.setStrict(True)
+# weightPort.setStrict(True)
+# maxvel_port.setStrict(True)
 
-qdotOutPort.open(qdotoutpn)
-qInPort.open(qinpn)
-toolPort.open(toolpn)
-paramPort.open(parampn)
-posePort.open(posepn)
-pose_no_tool_Port.open(pose_no_toolpn)
-weightPort.open(weightpn)
-tracking_error_port.open(tracking_errorpn)
-pose_in_port.open(pose_inpn)
-vector_port.open(vectorpn)
-goal_port.open(goalpn)
-maxvel_port.open(maxvelpn)
+# qdotOutPort.open(qdotoutpn)
+# qInPort.open(qinpn)
+# toolPort.open(toolpn)
+# paramPort.open(parampn)
+# posePort.open(posepn)
+# pose_no_tool_Port.open(pose_no_toolpn)
+# weightPort.open(weightpn)
+# tracking_error_port.open(tracking_errorpn)
+# pose_in_port.open(pose_inpn)
+# vector_port.open(vectorpn)
+# goal_port.open(goalpn)
+# maxvel_port.open(maxvelpn)
 
 yconnect = yarp.Network.connect
 
 cstyle = yarp.ContactStyle()
 cstyle.persistent = True
-yconnect(posepn, robotbn + "/dmonitor/currentPosIn", cstyle)
-yconnect(tracking_errorpn, robotbn + "/dmonitor/track_error_in", cstyle)
-yconnect(qdotoutpn, robotbn + "/bridge/vectorfieldcmd", cstyle)
+# yconnect(posepn, robotbn + "/dmonitor/currentPosIn", cstyle)
+# yconnect(tracking_errorpn, robotbn + "/dmonitor/track_error_in", cstyle)
+# yconnect(qdotoutpn, robotbn + "/bridge/vectorfieldcmd", cstyle)
+#yarp_connect_blocking(posepn, robotbn + "/dmonitor/currentPosIn")
+#yarp_connect_blocking(tracking_errorpn, robotbn + "/dmonitor/track_error_in")
+#yarp_connect_blocking(qdotoutpn, robotbn + "/bridge/vectorfieldcmd")
+yarp_ctrl.connect(posePort, arm_base_name+"/dmonitor", "/currentPosIn")
+yarp_ctrl.connect(tracking_error_port, arm_base_name+"/dmonitor", "/track_error_in")
+yarp_ctrl.connect(qdotOutPort, arm_base_name+"/bridge", "/vectorfieldcmd")
+
 
 config_max_vel = 0.41
 speedScale = 0.20  # Kimp - Rosie
@@ -171,7 +184,13 @@ first_arm_data = True
 reporting_port_counter = 0
 counter_test = 0
 
+while not yarp_ctrl.is_ready():
+    sleep(0.1)
+    print "Waiting for connections ready"
+print "All connections ready"
+
 while not stop:
+    yarp_ctrl.update()
 
     # Adjust new max_vel value
     botin = maxvel_port.read(False)
