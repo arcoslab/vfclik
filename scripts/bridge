@@ -135,6 +135,8 @@ class LWR_Bridge():
         if self.sim:
             self.yarp_ctrl.connect(self.qcmd_port, arm_base_name+"/joint_sim", "/qvin")
             #yconnect(robotbn + config.qcmd_portname, robotbn + "/joint_sim/qvin", cstyle)
+            self.yarp_ctrl.connect(self.qin_port, arm_base_name+"/joint_sim", "/qout")
+            #yconnect(robotbn + "/robot/pos", robotbn + config.qin_portname, cstyle)
         else:
             self.yarp_ctrl.connect(self.qcmd_port, arm_base_name+"/robot", "/cmd")
             #yconnect(robotbn + config.qcmd_portname, robotbn + "/robot/cmd", cstyle)
@@ -545,7 +547,7 @@ def ut_readbottle(port, blocking=False, size=-1):
 def main():
     global stop
     bridge = construct_arm_bridge(config.arm_type, options.sim, yarp_ctrl=yarp_ctrl)
-    encoders_port = yarp_ctrl.create_yarp_port("/encoders", strict=False)
+    encoders_port = yarp_ctrl.create_yarp_port("/encoders", input_port=False)
     vectorfieldcmd_port = yarp_ctrl.create_yarp_port("/vectorfieldcmd", strict=False)
     nullcmd_port = yarp_ctrl.create_yarp_port("/nullcmd", strict=False)
     jointcmd_port = yarp_ctrl.create_yarp_port("/jointcmd", strict=False)
@@ -553,7 +555,7 @@ def main():
     xtra1cmd_port = yarp_ctrl.create_yarp_port("/xtra1cmd", strict=False)
     xtra2cmd_port = yarp_ctrl.create_yarp_port("/xtra2cmd", strict=False)
     weight_port = yarp_ctrl.create_yarp_port("/weight")
-    current_weight_port = yarp_ctrl.create_yarp_port("/current_weights")
+    current_weight_port = yarp_ctrl.create_yarp_port("/current_weights", input_port=False)
     maxvel_port = yarp_ctrl.create_yarp_port("/max_vel")
 
     yconnect = yarp.Network.connect

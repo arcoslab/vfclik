@@ -62,9 +62,9 @@ yarp_ctrl=ArcosYarp(ports_name_prefix=options.namespace, module_name_prefix=modu
 
 robotbn = options.namespace + config.robotarm_portbasename
 base_name = robotbn + "/ofeeder"
-paramPort = yarp_ctrl.create_yarp_port("/param")
+paramPort = yarp_ctrl.create_yarp_port("/param", input_port=False)
 objectPort = yarp_ctrl.create_yarp_port("/object")
-object_f_port = yarp_ctrl.create_yarp_port("/objectf")  # port forwarding /object
+object_f_port = yarp_ctrl.create_yarp_port("/objectf", input_port=False)  # port forwarding /object
 objectOutPort = yarp_ctrl.create_yarp_port("/objectOut", input_port=False)
 
 yconnect = yarp.Network.connect
@@ -83,7 +83,7 @@ yarp_ctrl.connect(objectOutPort, arm_base_name+"/dmonitor", "/objectsIn")
 while not yarp_ctrl.is_ready():
     sleep(0.1)
     print "Waiting for connections ready"
-print "All connections ready"
+print "Object_feeder: All connections ready"
 
 
 objects = {}
