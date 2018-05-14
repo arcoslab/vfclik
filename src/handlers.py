@@ -26,11 +26,166 @@ from arcospyu.yarp_tools.yarp_comm_helpers import yarp_connect_blocking, \
     new_port
 from arcospyu.kdl_helpers.kdl_helpers import frame_to_list
 
+cstyle=yarp.ContactStyle()
+cstyle.persistent=True
+
+class HandleArmNew:
+    def __init__(self, namespace="/0", module_name="/handle_arm", arm_namespace="/0", robot="/lwr", arm="/right"):
+        self.module_name=module_name
+        self.namespace=namespace
+        self.arm_namespace=arm_namespace
+        self.arm_object_port_name=arm_namespace+robot+arm+"/ofeeder/object"
+        self.arm_stiffness_port_name=arm_namespace+robot+arm+"/robot/stiffness"
+        self.arm_pose_port_name=arm_namespace+robot+arm+"/vectorField/pose"
+        self.arm_distout_port_name=arm_namespace+robot+arm+"/dmonitor/distOut"
+        self.arm_tool_port_name=arm_namespace+robot+arm+"/vectorField/tool"
+        self.arm_bridge_weight_port_name=arm_namespace+robot+arm+"/bridge/weight"
+        self.arm_vf_weight_port_name=arm_namespace+robot+arm+"/vectorField/weight"
+        self.arm_bridge_encoders_port_name=arm_namespace+robot+arm+"/bridge/encoders"
+        self.arm_joint_ref_port_name=arm_namespace+robot+arm+"/jpctrl/ref"
+
+        self.object_port_name=namespace+self.module_name+arm+"/object"
+        self.stiffness_port_name=namespace+self.module_name+arm+"/stiffness"
+        self.pose_port_name=namespace+self.module_name+arm+"/pose"
+        self.distout_port_name=namespace+self.module_name+arm+"/distOut"
+        self.tool_port_name=namespace+self.module_name+arm+"/tool"
+        self.bridge_weight_port_name=namespace+self.module_name+arm+"/bridge/weight"
+        self.vf_weight_port_name=namespace+self.module_name+arm+"/vectorField/weight"
+        self.bridge_encoders_port_name=namespace+self.module_name+arm+"/encoders"
+        self.joint_ref_port_name=namespace+self.module_name+arm+"/joint_ref"
+
+        self.object_port=yarp.BufferedPortBottle()
+        self.stiffness_port=yarp.BufferedPortBottle()
+        self.pose_port=yarp.BufferedPortBottle()
+        self.distout_port=yarp.BufferedPortBottle()
+        self.tool_port=yarp.BufferedPortBottle()
+        self.bridge_weight_port=yarp.BufferedPortBottle()
+        self.vf_weight_port=yarp.BufferedPortBottle()
+        self.bridge_encoders_port=yarp.BufferedPortBottle()
+        self.joint_ref_port=yarp.BufferedPortBottle()
+
+        self.object_port.open(self.object_port_name)
+        self.stiffness_port.open(self.stiffness_port_name)
+        self.pose_port.open(self.pose_port_name)
+        self.distout_port.open(self.distout_port_name)
+        self.tool_port.open(self.tool_port_name)
+        self.bridge_weight_port.open(self.bridge_weight_port_name)
+        self.vf_weight_port.open(self.vf_weight_port_name)
+        self.bridge_encoders_port.open(self.bridge_encoders_port_name)
+        self.joint_ref_port.open(self.joint_ref_port_name)
+
+        yarp.Network.connect(self.object_port_name, self.arm_object_port_name, cstyle)
+        yarp.Network.connect(self.stiffness_port_name, self.arm_stiffness_port_name, cstyle)
+        yarp.Network.connect(self.arm_pose_port_name, self.pose_port_name, cstyle)
+        yarp.Network.connect(self.arm_distout_port_name, self.distout_port_name, cstyle)
+        yarp.Network.connect(self.tool_port_name, self.arm_tool_port_name, cstyle)
+        yarp.Network.connect(self.bridge_weight_port_name, self.arm_bridge_weight_port_name, cstyle)
+        yarp.Network.connect(self.vf_weight_port_name, self.arm_vf_weight_port_name, cstyle)
+        yarp.Network.connect(self.arm_bridge_encoders_port_name, self.bridge_encoders_port_name, cstyle)
+        yarp.Network.connect(self.joint_ref_port_name, self.arm_joint_ref_port_name, cstyle)
+
+        while not (yarp.Network.isConnected(self.object_port_name, self.arm_object_port_name) and
+                   yarp.Network.isConnected(self.stiffness_port_name, self.arm_stiffness_port_name) and
+                   yarp.Network.isConnected(self.arm_pose_port_name, self.pose_port_name) and
+                   yarp.Network.isConnected(self.arm_distout_port_name, self.distout_port_name) and
+                   yarp.Network.isConnected(self.tool_port_name, self.arm_tool_port_name) and
+                   yarp.Network.isConnected(self.bridge_weight_port_name, self.arm_bridge_weight_port_name) and
+                   yarp.Network.isConnected(self.vf_weight_port_name, self.arm_vf_weight_port_name) and
+                   yarp.Network.isConnected(self.arm_bridge_encoders_port_name, self.bridge_encoders_port_name) and
+                   yarp.Network.isConnected(self.joint_ref_port_name, self.arm_joint_ref_port_name)):
+            print "arm handler: waiting for initial connections"
+            sleep(0.01)
+        self.current_slowdown_distance = 0.1
+
+    def set_vf_tool(self, toolframe):
+        pass
+
+    def set_stiffness(self, stiffness):
+        pass
+
+    def go_cart(self, frame):
+        self.cart_goal=frame
+        bottle = self.object_port.prepare()
+        bottle.clear()
+        bottle.addString("set")
+        bottle.addString("goal")
+        frame_list_bottle = bottle.addList()
+        for i in self.cart_goal:
+            frame_list_bottle.addDouble(i)
+        frame_list_bottle.addDouble(self.current_slowdown_distance)
+        self.object_port.writeStrict()
+        self.set_cartesian_control()
+
+
+    def _write_yarp_port(self, port, data, strict=True):
+        bottle=port.prepare()
+        bottle.clear()
+        for i in data:
+            if type(i)==float:
+                bottle.addDouble(i)
+            elif type(i)==int:
+                bottle.addInt(i)
+            elif type(i)==str:
+                bottle.addString(i)
+        if strict:
+            port.writeStrict()
+        else:
+            port.write()
+
+    def go_joint(self, angles):
+        self.joint_goal=angles
+        self._write_yarp_port(self.joint_ref_port, angles)
+        self.set_joint_control()
+
+    def go_xyz(self, xyz):
+        pass
+
+    def go_rot(self, rot):
+        pass
+
+    def get_dist_cart_goal(self):
+        pass
+
+    def get_dist_joint_goal(self):
+        bottle=self.bridge_encoders_port.read(True)
+        cur_angles=[]
+        for i in xrange(bottle.size()):
+            cur_angles.append(bottle.get(i).asDouble())
+        return([i-j for i,j in zip(self.joint_goal, cur_angles)])
+
+    def get_joint_angles(self):
+        pass
+
+    def set_controller_mixer(self, cart=True, joint=False, null=False):
+        data=[]
+        if cart:
+            data.append(1)
+        else:
+            data.append(0)
+        if null:
+            data.append(1)
+        else:
+            data.append(0)
+        if joint:
+            data.append(1)
+        else:
+            data.append(0)
+        data.append(0) # an extra channel?
+        self._write_yarp_port(self.bridge_weight_port, data)
+
+    def set_cartesian_control(self):
+        self.set_controller_mixer(cart=True, null=True)
+
+
+    def set_joint_control(self):
+        self.set_controller_mixer(cart=False, null=False, joint=True)
+
+    
 
 class HandleArm(object):
-    def __init__(self, arm_portbasename, handlername="/HandlerArm"):
+    def __init__(self, arm_portbasename, namespace="", handlername="/HandlerArm"):
 
-        prename = arm_portbasename
+        prename = namespace + arm_portbasename
         full_name = prename + handlername
 
         self.outp = yarp.BufferedPortBottle()
