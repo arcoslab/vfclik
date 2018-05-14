@@ -143,8 +143,25 @@ class HandleArmNew:
     def go_rot(self, rot):
         pass
 
+    def get_cart_pose(self):
+        bottle=self.pose_port.read(True)
+        pose = map(yarp.Value.asDouble, map(bottle.get, range(bottle.size())))
+        return(pose)
+
     def get_dist_cart_goal(self):
-        pass
+        pending = self.distout_port.getPendingReads()
+        for i in range(pending):
+            print("GOAL dist: ", self.distout_port.read(False))
+        while True:
+            dists=self.distout_port.read(True)
+            for i in xrange(dists.size()):
+                item=dists.get(i).asList()
+                if item.get(0).asInt()==0:
+                    #main goal
+                    xyzdist=item.get(1).asDouble()
+                    rotdist=item.get(2).asDouble()*pi/180.0
+                    print "Cart distance: ", xyzdist, rotdist
+                    return([xyzdist, rotdist])
 
     def get_dist_joint_goal(self):
         bottle=self.bridge_encoders_port.read(True)
