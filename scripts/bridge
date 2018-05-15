@@ -119,6 +119,7 @@ class LWR_Bridge():
         self.nJoints = config.nJoints
         self.last_q = self.nJoints * [0.0]
         self.last_qcmded = []
+        self.torso_joints=config.torso_joints
 
     def __del__(self):
         self.close()
@@ -137,6 +138,13 @@ class LWR_Bridge():
             #yconnect(robotbn + config.qcmd_portname, robotbn + "/joint_sim/qvin", cstyle)
             self.yarp_ctrl.connect(self.qin_port, arm_base_name+"/joint_sim", "/qout")
             #yconnect(robotbn + "/robot/pos", robotbn + config.qin_portname, cstyle)
+            if len(self.torso_joints)>0:
+                print "Torso is another arm!"
+                remote_torso_module_name="/"+config.arm_type+"/"+config.torso_instance+"/joint_sim"
+                self.torso_qin_port=self.yarp_ctrl.create_yarp_port(config.torso_qin_portname, strict=False)
+                self.yarp_ctrl.connect(self.torso_qin_port, remote_torso_module_name, "/qout")
+            else:
+                print "This is the torso!"
         else:
             self.yarp_ctrl.connect(self.qcmd_port, arm_base_name+"/robot", "/cmd")
             #yconnect(robotbn + config.qcmd_portname, robotbn + "/robot/cmd", cstyle)
@@ -162,6 +170,12 @@ class LWR_Bridge():
             self.last_qcmded = ut_bottle2list(bottle)
         elif self.last_qcmded == []:
             self.last_qcmded = self.last_q
+
+        if len(self.torso_joints)>0:
+            bottle=self.torso_qin_port.read(True)
+            torso_q=ut_bottle2list(bottle)
+            for joint in config.torso_joints:
+                self.last_q[joint]=torso_q[joint]
 
         return self.last_q
 
