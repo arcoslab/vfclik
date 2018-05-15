@@ -197,7 +197,24 @@ class HandleArmNew:
     def set_joint_control(self):
         self.set_controller_mixer(cart=False, null=False, joint=True)
 
-    
+    def set_wik_joint_weights(self, joint_weights):
+        bottle = self.vf_weight_port.prepare()
+        bottle.clear()
+        bottle.addString("j")
+        for w in joint_weights:
+            bottle.addDouble(w)
+        self.vf_weight_port.writeStrict()
+
+    def set_wik_cart_weights(self, cart_weights):
+        bottle = self.vf_weight_port.prepare()
+        bottle.clear()
+        bottle.addString("t")
+        for w in cart_weights:
+            bottle.addDouble(w)
+        self.vf_weight_port.writeStrict()
+
+    def set_tool(self, tool_frame):
+        self._write_yarp_port(self.tool_port, tool_frame)
 
 class HandleArm(object):
     def __init__(self, arm_portbasename, namespace="", handlername="/HandlerArm"):
