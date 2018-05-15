@@ -134,6 +134,8 @@ yarp_ctrl.connect(qdotOutPort, arm_base_name+"/bridge", "/vectorfieldcmd")
 
 config_max_vel = 0.41
 speedScale = 0.20  # Kimp - Rosie
+speedScale = 1.0  # Kimp - Rosie
+speedScale=config.speedScale
 min_rot = 0.09
 stopDistance = 0.005
 r_stopDistance = 0.03

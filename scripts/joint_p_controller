@@ -53,6 +53,7 @@ config_parser = ConfigFileParser(sys.argv)
 options, args, config = config_parser.get_all()
 
 kp = 1.5  # 0.8
+kp = config.jpctrl_kp
 delta = 0.087  # distance to have reached
 
 yarp.Network.init()
