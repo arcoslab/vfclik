@@ -151,7 +151,8 @@ class HandleArmNew:
     def get_dist_cart_goal(self):
         pending = self.distout_port.getPendingReads()
         for i in range(pending):
-            print("GOAL dist: ", self.distout_port.read(False))
+            #print("GOAL dist: ", self.distout_port.read(False))
+            pass
         while True:
             dists=self.distout_port.read(True)
             for i in xrange(dists.size()):
@@ -160,7 +161,7 @@ class HandleArmNew:
                     #main goal
                     xyzdist=item.get(1).asDouble()
                     rotdist=item.get(2).asDouble()*pi/180.0
-                    print "Cart distance: ", xyzdist, rotdist
+                    #print "Cart distance: ", xyzdist, rotdist
                     return([xyzdist, rotdist])
 
     def get_dist_joint_goal(self):
@@ -345,7 +346,8 @@ class HandleArm(object):
         result = False
         pending = self.goaldistp.getPendingReads()
         for i in range(pending):
-            print("GOAL dist: ", self.goaldistp.read(False))
+            pass
+            #print("GOAL dist: ", self.goaldistp.read(False))
         if len(goal_precision) == 2:
             if wait > 0.0:
                 first_read = True
@@ -361,7 +363,7 @@ class HandleArm(object):
                                 orient_dist = (
                                     line.get(2).asDouble()) * pi / 180.0
                         # compare q vs js, if q is within tolerance, then break
-                        print("Cartesian distance:", pos_dist, orient_dist)
+                        #print("Cartesian distance:", pos_dist, orient_dist)
                         difference = array([pos_dist, orient_dist])
                         if pos_dist < goal_precision[0] and \
                            orient_dist < goal_precision[1]:
