@@ -30,7 +30,8 @@ cstyle=yarp.ContactStyle()
 cstyle.persistent=True
 
 class HandleArmNew:
-    def __init__(self, namespace="/0", module_name="/handle_arm", arm_namespace="/0", robot="/lwr", arm="/right"):
+    def __init__(self, namespace="/0", module_name="/handle_arm", arm_namespace="/0", robot="/lwr", arm="/right", sim=True):
+        self.sim=True
         self.module_name=module_name
         self.namespace=namespace
         self.arm_namespace=arm_namespace
@@ -43,6 +44,7 @@ class HandleArmNew:
         self.arm_vf_weight_port_name=arm_namespace+robot+arm+"/vectorField/weight"
         self.arm_bridge_encoders_port_name=arm_namespace+robot+arm+"/bridge/encoders"
         self.arm_joint_ref_port_name=arm_namespace+robot+arm+"/jpctrl/ref"
+        self.arm_joint_sim_qin_port_name=arm_namespace+robot+arm+"/joint_sim/qin"
 
         self.object_port_name=namespace+self.module_name+arm+"/object"
         self.stiffness_port_name=namespace+self.module_name+arm+"/stiffness"
@@ -53,6 +55,7 @@ class HandleArmNew:
         self.vf_weight_port_name=namespace+self.module_name+arm+"/vectorField/weight"
         self.bridge_encoders_port_name=namespace+self.module_name+arm+"/encoders"
         self.joint_ref_port_name=namespace+self.module_name+arm+"/joint_ref"
+        self.joint_sim_qin_port_name=namespace+self.module_name+arm+"/joint_sim/qin"
 
         self.object_port=yarp.BufferedPortBottle()
         self.stiffness_port=yarp.BufferedPortBottle()
@@ -63,6 +66,7 @@ class HandleArmNew:
         self.vf_weight_port=yarp.BufferedPortBottle()
         self.bridge_encoders_port=yarp.BufferedPortBottle()
         self.joint_ref_port=yarp.BufferedPortBottle()
+        self.joint_sim_qin_port=yarp.BufferedPortBottle()
 
         self.object_port.open(self.object_port_name)
         self.stiffness_port.open(self.stiffness_port_name)
@@ -73,6 +77,7 @@ class HandleArmNew:
         self.vf_weight_port.open(self.vf_weight_port_name)
         self.bridge_encoders_port.open(self.bridge_encoders_port_name)
         self.joint_ref_port.open(self.joint_ref_port_name)
+        self.joint_sim_qin_port.open(self.joint_sim_qin_port_name)
 
         yarp.Network.connect(self.object_port_name, self.arm_object_port_name, cstyle)
         yarp.Network.connect(self.stiffness_port_name, self.arm_stiffness_port_name, cstyle)
@@ -83,6 +88,7 @@ class HandleArmNew:
         yarp.Network.connect(self.vf_weight_port_name, self.arm_vf_weight_port_name, cstyle)
         yarp.Network.connect(self.arm_bridge_encoders_port_name, self.bridge_encoders_port_name, cstyle)
         yarp.Network.connect(self.joint_ref_port_name, self.arm_joint_ref_port_name, cstyle)
+        yarp.Network.connect(self.joint_sim_qin_port_name, self.arm_joint_sim_qin_port_name, cstyle)
 
         while not (yarp.Network.isConnected(self.object_port_name, self.arm_object_port_name) and
                    yarp.Network.isConnected(self.stiffness_port_name, self.arm_stiffness_port_name) and
@@ -92,10 +98,16 @@ class HandleArmNew:
                    yarp.Network.isConnected(self.bridge_weight_port_name, self.arm_bridge_weight_port_name) and
                    yarp.Network.isConnected(self.vf_weight_port_name, self.arm_vf_weight_port_name) and
                    yarp.Network.isConnected(self.arm_bridge_encoders_port_name, self.bridge_encoders_port_name) and
-                   yarp.Network.isConnected(self.joint_ref_port_name, self.arm_joint_ref_port_name)):
+                   yarp.Network.isConnected(self.joint_ref_port_name, self.arm_joint_ref_port_name) and
+                   ((not self.sim) or yarp.Network.isConnected(self.joint_sim_qin_port_name, self.arm_joint_sim_qin_port_name))
+
+        ):
             print "arm handler: waiting for initial connections"
             sleep(0.01)
         self.current_slowdown_distance = 0.1
+
+    def set_sim_arm_q(self, q):
+        self._write_yarp_port(self.joint_sim_qin_port, q, strict=True)
 
     def set_vf_tool(self, toolframe):
         pass
