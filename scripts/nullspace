@@ -151,6 +151,7 @@ def main():
     cstyle.persistent = True
 
     yarp_ctrl.connect(qdotout_port, arm_base_name+"/bridge", "/nullcmd")
+    yarp_ctrl.connect(qin_port, arm_base_name+"/bridge", "/encoders")
     #yconnect(qdotoutpn, robotbn + "/bridge/nullcmd", cstyle)
 
     #  limits = rob.get_limits()

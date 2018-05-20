@@ -112,7 +112,7 @@ while not stop:
         ref = array(
             map(yarp.Value.asDouble, map(refbottle.get,
                                          range(config.nJoints))))
-        print("New reference:", ref)
+        #print("New reference:", ref)
     inbottle = inPort.read(False)
     if inbottle:
         indata = array(

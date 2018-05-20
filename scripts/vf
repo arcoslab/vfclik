@@ -51,7 +51,6 @@ import PyKDL
 import signal
 stop = False
 
-
 def signal_handler(sig, frame):
     dprint("Terminating.")
     global stop
@@ -211,7 +210,7 @@ while not stop:
     parambottle = paramPort.read(False)
 
     if (start_attractor or (parambottle and (parambottle.size() >= 1))):
-        dprint("setting vectorfield")
+        #dprint("setting vectorfield")
 
         counter_test += 1
         # We receive new parameter values!
@@ -257,10 +256,10 @@ while not stop:
                         vectorFields[parambottle.get(1).asInt()] = [
                             force, tVF, params
                         ]
-                        dprint("Normal, vector field number",
-                               parambottle.get(1).asInt(),
-                               "vectorfield params",
-                               vectorFields[parambottle.get(1).asInt()])
+                        # dprint("Normal, vector field number",
+                        #        parambottle.get(1).asInt(),
+                        #        "vectorfield params",
+                        #        vectorFields[parambottle.get(1).asInt()])
                 else:
                     dprint("Unknown vector field type, ignoring")
             else:

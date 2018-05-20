@@ -111,13 +111,13 @@ while not stop:
     objectsInbottle = objectsInPort.read(False)
     if (objectsInbottle and (objectsInbottle.size() >= 2)):
         if objectsInbottle.get(0).toString() == "add":
-            print("Add command")
+            #print("Add command")
             # add the object to the dictionary
             if objectsInbottle.size() == 3:
                 objectsInbottleList = objectsInbottle.get(2).asList()
                 if objectsInbottleList.size() == 16:
                     # We got the right amount of data now do something
-                    print("Adding something")
+                    #print("Adding something")
                     objects[objectsInbottle.get(1).asInt()] = map(
                         yarp.Value.asDouble,
                         map(objectsInbottleList.get, range(16)))

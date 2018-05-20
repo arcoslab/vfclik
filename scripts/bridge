@@ -576,7 +576,7 @@ def main():
     cstyle = yarp.ContactStyle()
     cstyle.persistent = True
     yarp_ctrl.connect(encoders_port, arm_base_name+"/vectorField", "/qIn")
-    yarp_ctrl.connect(encoders_port, arm_base_name+"/nullspace", "/qin")
+    yarp_ctrl.connect(encoders_port, arm_base_name+"/nullspace", "/qin", necessary=False)
     yarp_ctrl.connect(encoders_port, arm_base_name+"/jpctrl", "/in")
     yarp_ctrl.connect(encoders_port, arm_base_name+"/roboview", "/qin", necessary=False)
     yarp_ctrl.connect(encoders_port, arm_base_name+"/debug", "/qin")

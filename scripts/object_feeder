@@ -109,7 +109,7 @@ while not stop:
         objectfbottle.add(objectbottle.get(i))
     object_f_port.writeStrict()
     if (objectbottle and (objectbottle.size() >= 2)):
-        dprint("PARAMETER: ", objectbottle.toString())
+        #dprint("PARAMETER: ", objectbottle.toString())
         # We receive new parameter values!
         objectAction = objectbottle.get(0)
         if objectAction.toString() == "set":
@@ -212,9 +212,9 @@ while not stop:
             dprint("Action not recognized")
 
         if 0 in objects:
-            dprint("There is a goal, adding objects to the vector field")
+            #dprint("There is a goal, adding objects to the vector field")
             for objectNum in objects:
-                dprint("Sending object: ", objectNum)
+                #dprint("Sending object: ", objectNum)
                 paramlist = objects[objectNum]
                 if objectNum == 0:
                     objectOutbottle = objectOutPort.prepare()
@@ -227,7 +227,7 @@ while not stop:
                     objectOutPort.writeStrict()
                     # send goal
                     if len(paramlist) == 17:  # normal goal
-                        dprint("sending normal goal")
+                        #dprint("sending normal goal")
                         parambottle = paramPort.prepare()
                         parambottle.clear()
                         parambottle.addString("add")

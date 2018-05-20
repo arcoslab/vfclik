@@ -70,6 +70,12 @@ def main():
         dest="sim",
         default=False,
         help="Simulation")
+    parser.add_option(
+        "--no_nullspace",
+        action="store_true",
+        dest="no_nullspace",
+        default=False,
+        help="Simulation")
     (options, args) = parser.parse_args(sys.argv[1:])
     config_filename = (options.config_dir + "config-" + options.robot + "-" +
                        options.instance + ".py")
@@ -83,10 +89,13 @@ def main():
         ["vf", "-c", config_filename, "-n", options.namespace],
         ["object_feeder", "-c", config_filename, "-n", options.namespace],
         ["monitor_distance", "-c", config_filename, "-n", options.namespace],
-        ["nullspace", "-c", config_filename, "-n", options.namespace],
         ["joint_p_controller", "-c", config_filename, "-n", options.namespace],
         ["debug_jointlimits", "-c", config_filename, "-n", options.namespace]
     ]
+    if not options.no_nullspace:
+        processes_args +=[
+        ["nullspace", "-c", config_filename, "-n", options.namespace]
+        ]
     if options.sim:
         processes_args += [[
             "joint_sim", "-c", config_filename, "-n", options.namespace
